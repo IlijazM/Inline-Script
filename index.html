@@ -5,23 +5,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+
+    <script src="xdiv.js" defer></script>
+
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
 </head>
 
 <body>
+    <div x src="header.html"></div>
     <div>
-        <xdiv id="listView">{{
+        <div x id="listView">{{
             list.map((value) => {
                 return (<div>
                     <input type="text" value="${value}" readonly />
                 </div>)
             })
-        }}</xdiv>
+        }}</div>
     </div>
 
     <input type="text" id="input">
     <button onclick="add()">Add</button>
-
-    <script src="xdiv.js"></script>
 
     <script>
         let list = []

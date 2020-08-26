@@ -1,0 +1,38 @@
+<header x>{{
+    headerContent.map((content) => {
+        return `<div x>{{
+            "${content}" == "${currentHeaderContent}" ? \`<b>${content}</b>\` : \`<a>${content}</a>\`
+        }}</div>`
+    })
+    }}</header>
+
+<script>
+    const headerContent = [
+        "Home", "About", "Contact", "Information"
+    ]
+
+    var currentHeaderContent = "Home"
+</script>
+
+<style>
+    header {
+        display: flex;
+
+        width: 100%;
+        height: 50px;
+
+        background: #555;
+        color: #fff;
+    }
+
+    header a,
+    header b {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        height: 100%;
+
+        padding: 0 20px;
+    }
+</style>

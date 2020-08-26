@@ -5,24 +5,56 @@ const $ = (v) => d.querySelector(v)
 const $a = (v) => d.querySelectorAll(v)
 const append = (str) => body.innerHTML += str
 
+let I = 0;
+
+async function GET(theUrl) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open("GET", theUrl, false); // false for synchronous request
+    xmlHttp.send(null);
+    return xmlHttp;
+}
+
+async function loadFile(element, fileName) {
+    const res = await GET(window.location.origin + "/" + fileName)
+    element.innerHTML = res.responseText
+}
+
 let xdivs = {}
 
-function compile(p) {
-    const all = p.querySelectorAll('xdiv')
+async function compile(p) {
+    const all = p.querySelectorAll('*[x]')
 
     for (let i = 0; i < all.length; i++) {
         const element = all[i];
         if (element.parentElement == null) {
-            console.log(element + " has no parent element")
-            continue
+            console.log("has no parent element")
+            console.log(element)
+        }
+
+        if (element.attributes.getNamedItem("src") != null) {
+            const res = await GET(window.location.origin + "/" + element.attributes.getNamedItem("src").value)
+
+            try {
+                element.isLoader = true
+                element.innerHTML = res.responseText
+
+                element.querySelectorAll("script").forEach((v) => {
+                    let script = d.createElement("script")
+                    script.innerHTML = v.innerHTML
+                    body.appendChild(script)
+                })
+            } catch {
+            }
         }
 
         // sets a unique class name
-        const id = `xdiv-id-${i}`;
+        const id = `xdiv-id-${I++}`;
         element.classList.add(id);
 
-        // change the outer html from xdiv to div
-        // element.outerHTML = `<div${element.outerHTML.substring(5, element.outerHTML.length - 5)}div>`
+        if (element.isLoader) {
+            compile(element)
+            continue
+        }
 
         // sets the initial content
         const replaceList = {
@@ -46,7 +78,9 @@ function compile(p) {
                 let _ = '';
                 ${this.initialContent}
             `);
-            } catch {
+            } catch (e) {
+                console.error(e)
+                console.log(this.initialContent)
                 res = ""
             }
 
@@ -64,7 +98,7 @@ function compile(p) {
 
         // add the element to the x array
         xdivs[element.id] = element
-        console.log(element)
+        // console.log(element)
     }
 }
 
