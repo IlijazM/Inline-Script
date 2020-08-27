@@ -1,0 +1,20 @@
+<div>{{
+    navigation.map((i) => {
+        return (<p>{{
+            "${i}" == "${current}" ? (<b>${i}</b>) : (<p>${i}</p>)
+        }}</p>)
+    })
+    }}</div>
+
+<script>
+    let navigation = [
+        "Startseite",
+        "Preise",
+        "Kontakt"
+    ]
+
+    let current = "Preise"
+</script>
+
+<style>
+</style>

@@ -7,40 +7,10 @@
     <title>Document</title>
 
     <script src="xdiv.js" defer></script>
-
-    <style>
-        body {
-            margin: 0;
-        }
-    </style>
 </head>
 
 <body>
-    <div x src="header.html"></div>
-    <div>
-        <div x id="listView">{{
-            list.map((value) => {
-                return (<div>
-                    <input type="text" value="${value}" readonly />
-                </div>)
-            })
-        }}</div>
-    </div>
-
-    <input type="text" id="input">
-    <button onclick="add()">Add</button>
-
-    <script>
-        let list = []
-
-        function add() {
-            const inputEl = $("#input")
-            list.push(inputEl.value)
-            inputEl.value = ""
-
-            $("#listView").rerender()
-        }
-    </script>
+    <div x src="main.html"></div>
 </body>
 
 </html>

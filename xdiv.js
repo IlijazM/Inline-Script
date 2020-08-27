@@ -8,65 +8,97 @@ const append = (str) => body.innerHTML += str
 let I = 0;
 
 async function GET(theUrl) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open("GET", theUrl, false); // false for synchronous request
-    xmlHttp.send(null);
-    return xmlHttp;
-}
-
-async function loadFile(element, fileName) {
-    const res = await GET(window.location.origin + "/" + fileName)
-    element.innerHTML = res.responseText
+    const xmlHttp = new XMLHttpRequest()
+    xmlHttp.open("GET", theUrl, false)
+    xmlHttp.send(null)
+    return xmlHttp
 }
 
 let xdivs = {}
 
+function convertHTMLString(script) {
+    let out = ""
+
+    let depth = 0
+    for (let i = 0; i < script.length; i++) {
+        const c = script.substr(i, 1)
+        const cc = script.substr(i, 2)
+
+        if (cc === "(<") {
+            for (let j = 0; j < depth; j++) {
+                out += "\\"
+                if (j != 0) out += "\\"
+            }
+
+            out += "`<"
+            i++
+            depth++
+        } else if (cc === ">)") {
+            depth--
+            out += ">"
+
+            for (let j = 0; j < depth; j++) {
+                out += "\\"
+                if (j != 0) out += "\\"
+            }
+
+            out += "`"
+            i++
+        } else {
+            out += c
+        }
+    }
+
+    return out
+}
+
 async function compile(p) {
-    const all = p.querySelectorAll('*[x]')
+    const srcs = p.querySelectorAll("*[src]")
+
+    for (let i = 0; i < srcs.length; i++) {
+        const element = srcs[i];
+
+        const res = await GET(window.location.origin + "/" + element.attributes.getNamedItem("src").value)
+
+        try {
+            element.isLoader = true
+            element.innerHTML = res.responseText
+
+            element.querySelectorAll("script").forEach((v) => {
+                let script = d.createElement("script")
+                script.innerHTML = v.innerHTML
+                body.appendChild(script)
+                compile(element)
+            })
+        } catch {
+        }
+    }
+
+    const all = p.querySelectorAll('*')
 
     for (let i = 0; i < all.length; i++) {
         const element = all[i];
+        if (!element.innerHTML.trim().startsWith("{{")) continue
+
         if (element.parentElement == null) {
             console.log("has no parent element")
             console.log(element)
-        }
-
-        if (element.attributes.getNamedItem("src") != null) {
-            const res = await GET(window.location.origin + "/" + element.attributes.getNamedItem("src").value)
-
-            try {
-                element.isLoader = true
-                element.innerHTML = res.responseText
-
-                element.querySelectorAll("script").forEach((v) => {
-                    let script = d.createElement("script")
-                    script.innerHTML = v.innerHTML
-                    body.appendChild(script)
-                })
-            } catch {
-            }
         }
 
         // sets a unique class name
         const id = `xdiv-id-${I++}`;
         element.classList.add(id);
 
-        if (element.isLoader) {
-            compile(element)
-            continue
-        }
-
         // sets the initial content
         const replaceList = {
             '&gt;': '>',
             '&lt;': '<',
-            '(<': '`<',
-            '>)': '>`',
         }
         element.initialContent = element.innerHTML
         Object.keys(replaceList).forEach((i) => {
             element.initialContent = element.initialContent.split(i).join(replaceList[i])
         })
+        element.initialContent = convertHTMLString(element.initialContent)
 
         // sets the rerender function
         element.rerender = function () {
