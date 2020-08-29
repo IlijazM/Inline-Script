@@ -69,6 +69,40 @@ function compileHTMLExpression(html) {
     return newHTML
 }
 
+// Reactions
+
+let reactionSubscriptions = {}
+function compileReactsTo(element, uid) {
+    if (element.attributes.getNamedItem("reacts-to") != null) {
+        const reacts_to = element.attributes.getNamedItem("reacts-to").value
+
+        if (reactionSubscriptions[reacts_to] == null) {
+            reactionSubscriptions[reacts_to] = ''
+            let copy = "$__"
+            for (let i = 0; i < reacts_to.length; i++) {
+                const c = reacts_to.substr(i, 1)
+                if (/[a-zA-Z$_0-9]/.test(c)) copy += c
+                else copy += "_"
+            }
+            copy += "__"
+
+            const script = d.createElement("script")
+            script.innerHTML += `
+                let ${copy} = ${reacts_to}
+                setInterval(()=>{
+                    if (${copy} !== ${reacts_to}) {
+                        ${copy} = ${reacts_to};
+                        eval(reactionSubscriptions["${reacts_to}"])
+                    }
+                }, 10)
+            `
+            body.appendChild(script)
+        }
+
+        reactionSubscriptions[reacts_to] += `document.querySelector('.${uid}').render();`
+    }
+}
+
 function compile(element, id) {
     debugLog("compiling element: ")
     debugLog(element)
@@ -88,28 +122,7 @@ function compile(element, id) {
     const uid = "xid-" + id.join("-")
     element.classList.add(uid)
 
-    if (element.attributes.getNamedItem("reacts-to") != null) {
-        const reacts_to = element.attributes.getNamedItem("reacts-to").value
-        let copy = "$__"
-        for (let i = 0; i < reacts_to.length; i++) {
-            const c = reacts_to.substr(i, 1)
-            if (/[a-zA-Z$_0-9]/.test(c)) copy += c
-            else copy += "_"
-        }
-        copy += "__"
-
-        const script = d.createElement("script")
-        script.innerHTML += `
-            let ${copy} = ${reacts_to}
-            setInterval(()=>{
-                if (${copy} !== ${reacts_to}) {
-                    ${copy} = ${reacts_to}
-                    document.querySelector('.${uid}').render()
-                }
-            }, 10)
-        `
-        body.appendChild(script)
-    }
+    compileReactsTo(element, uid)
 
     element.render = function () {
         debugLog("render element: ")
