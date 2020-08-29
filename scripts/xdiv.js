@@ -5,6 +5,12 @@ const $ = (v) => d.querySelector(v)
 const $a = (v) => d.querySelectorAll(v)
 const append = (str) => body.innerHTML += str
 
+function $e(htmlString) {
+    let div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
+    return div.firstChild;
+}
+
 let debug = false
 function debugLog(message) {
     if (debug) console.log(message)
@@ -35,6 +41,14 @@ function reverseSanitation(html) {
     return html
 }
 
+const compileHTML = `eval(\`
+    let element = $e(\\\`#\\\`);
+    ${compile}
+    if (element.innerHTML.trim().startsWith("{")) compile(element);
+    element.outerHTML
+\`)
+`
+
 function compileHTMLExpression(html) {
     debugLog("compiling html expression")
     debugLog(html)
@@ -49,14 +63,15 @@ function compileHTMLExpression(html) {
             opened++
 
             if (opened === 1) {
-                newHTML += "`"
+                newHTML += compileHTML.split("#")[0]
                 continue
             }
         } else if (cc === ">)") {
             opened--
 
             if (opened === 0) {
-                newHTML += ">`"
+                newHTML += ">"
+                newHTML += compileHTML.split("#")[1]
                 i++
                 continue
             }
@@ -69,7 +84,7 @@ function compileHTMLExpression(html) {
     return newHTML
 }
 
-// Reactions
+//#region reaction
 
 let reactionSubscriptions = {}
 function compileReactsTo(element, uid) {
@@ -92,6 +107,7 @@ function compileReactsTo(element, uid) {
                 setInterval(()=>{
                     if (${copy} !== ${reacts_to}) {
                         ${copy} = ${reacts_to};
+                        console.log("REACT! '${reacts_to}'")
                         eval(reactionSubscriptions["${reacts_to}"])
                     }
                 }, 10)
@@ -103,7 +119,9 @@ function compileReactsTo(element, uid) {
     }
 }
 
-function compile(element, id) {
+//#endregion
+
+function compile(element) {
     debugLog("compiling element: ")
     debugLog(element)
     debugLog(element.outerHTML)
@@ -114,12 +132,7 @@ function compile(element, id) {
 
     element.initialContent = html
 
-    element.setInnerHTML = (inner) => {
-        element.innerHTML = inner
-        compile(element, id)
-    }
-
-    const uid = "xid-" + id.join("-")
+    const uid = getUniqueClassName()
     element.classList.add(uid)
 
     compileReactsTo(element, uid)
@@ -145,15 +158,13 @@ function compile(element, id) {
         debugLog(this.outerHTML)
         debugLog("finish render")
 
-        scan(this, id)
+        scan(element, false)
     }
 
     element.render()
 }
 
-function scan(parent, initialId) {
-    debugLog("id: " + initialId)
-
+function scan(parent, dontCompile) {
     debugLog("scanning element: ")
     debugLog(parent)
     const childs = Array.from(parent.children)
@@ -169,13 +180,10 @@ function scan(parent, initialId) {
         debugLog(element.outerHTML)
 
         if (element.innerHTML.startsWith("{")) {
+            if (dontCompile) continue
             debugLog("It is a inline javascript expression")
 
-            let id = []
-            if (initialId != null) initialId.forEach((v) => id.push(v))
-            id.push(i)
-
-            compile(element, id)
+            compile(element)
         } else if (element.attributes.getNamedItem("xsrc") != null) {
             debugLog("It contains a 'xsrc' attribute")
 
@@ -184,9 +192,7 @@ function scan(parent, initialId) {
             GET(window.location.origin + "/" + xsrc).then((res) => {
                 let content = res.responseText
                 content = content.split("?").join("&quest;")
-                console.log(content)
                 element.innerHTML = content
-                console.log(element.innerHTML)
 
                 // evaluating scripts
                 element.querySelectorAll("script").forEach((v) => {
@@ -197,14 +203,14 @@ function scan(parent, initialId) {
 
                 // scoping styles
                 element.querySelectorAll("style").forEach((v) => {
-                    v.innerHTML = "/*Hello*/ " + v.innerHTML
+                    v.innerHTML = "/**/ " + v.innerHTML
                 })
 
                 scan(element)
             })
         } else {
             debugLog("It is a regular element")
-            scan(element)
+            scan(element, dontCompile)
         }
     }
 

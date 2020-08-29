@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 
-    <script src="xdiv.js" defer></script>
+    <script src="scripts/xdiv.js" defer></script>
 
     <style>
         .fade {
@@ -47,13 +47,13 @@
 </head>
 
 <body>
-    <div xsrc="header.html"></div>
+    <div xsrc="components/header.html"></div>
 
     <div reacts-to="currentPage">{{
         $("#content").style.opacity = 0
         setTimeout(() => {
             $("#content").style.opacity = 1
-            content = (<div xsrc="${currentPage}.html"></div>)
+            content = (<div xsrc="pages/${currentPage}.html"></div>)
         }, 400);
 
         ""
@@ -62,9 +62,11 @@
     <div class="fade" id="content" reacts-to="content">{{ content }}</div>
 
     <script>
-        let currentPage = "Home"
+        let currentPage = "Overview"
         let content = ""
     </script>
+
+    <script src="scripts/app.js"></script>
 </body>
 
 </html>
