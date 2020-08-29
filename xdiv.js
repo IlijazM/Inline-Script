@@ -80,7 +80,36 @@ function compile(element, id) {
 
     element.initialContent = html
 
-    element.classList.add("xid-" + id.join("-"))
+    element.setInnerHTML = (inner) => {
+        element.innerHTML = inner
+        compile(element, id)
+    }
+
+    const uid = "xid-" + id.join("-")
+    element.classList.add(uid)
+
+    if (element.attributes.getNamedItem("reacts-to") != null) {
+        const reacts_to = element.attributes.getNamedItem("reacts-to").value
+        let copy = "$__"
+        for (let i = 0; i < reacts_to.length; i++) {
+            const c = reacts_to.substr(i, 1)
+            if (/[a-zA-Z$_0-9]/.test(c)) copy += c
+            else copy += "_"
+        }
+        copy += "__"
+
+        const script = d.createElement("script")
+        script.innerHTML += `
+            let ${copy} = ${reacts_to}
+            setInterval(()=>{
+                if (${copy} !== ${reacts_to}) {
+                    ${copy} = ${reacts_to}
+                    document.querySelector('.${uid}').render()
+                }
+            }, 10)
+        `
+        body.appendChild(script)
+    }
 
     element.render = function () {
         debugLog("render element: ")
@@ -140,7 +169,8 @@ function scan(parent, initialId) {
             const xsrc = element.attributes.getNamedItem("xsrc").value
 
             GET(window.location.origin + "/" + xsrc).then((res) => {
-                const content = res.responseText
+                let content = res.responseText
+                content = content.split("?").join("&quest;")
                 console.log(content)
                 element.innerHTML = content
                 console.log(element.innerHTML)
@@ -150,6 +180,11 @@ function scan(parent, initialId) {
                     let script = d.createElement("script")
                     script.innerHTML = v.innerHTML
                     body.appendChild(script)
+                })
+
+                // scoping styles
+                element.querySelectorAll("style").forEach((v) => {
+                    v.innerHTML = "/*Hello*/ " + v.innerHTML
                 })
 
                 scan(element)

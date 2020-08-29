@@ -1,12 +1,12 @@
 <header>{{
     navigation.map((nav) => {
-        return (<p>{
-            "${nav}" == "${current}" ? (<p class="current">${nav}</p>) : (<p>${nav}</p>)
-        }</p>)
+        return (<div>{
+            "${nav}" == "${currentPage}" ? (<p class="current">${nav}</p>) : (<p onclick="currentPage='${nav}'">${nav}</p>)
+        }</div>)
     })
 }}</header>
 
-<style>
+<style scoped>
     header {
         display: flex;
         width: 100%;
@@ -16,13 +16,19 @@
         color: white;
     }
 
-    header p {
+    p {
+        display: flex;
+        align-items: center;
+
         height: 100%;
 
         padding: 0 20px;
+        padding-bottom: 2px;
+
+        cursor: pointer;
     }
 
-    header .current {
+    .current {
         color: red;
     }
 </style>
@@ -31,6 +37,4 @@
     let navigation = [
         "Home", "About", "Pricing", "Contact"
     ]
-
-    let current = "About"
 </script>
