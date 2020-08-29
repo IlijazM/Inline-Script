@@ -1,0 +1,36 @@
+<header>{{
+    navigation.map((nav) => {
+        return (<p>{
+            "${nav}" == "${current}" ? (<p class="current">${nav}</p>) : (<p>${nav}</p>)
+        }</p>)
+    })
+}}</header>
+
+<style>
+    header {
+        display: flex;
+        width: 100%;
+        height: 50px;
+
+        background: #444;
+        color: white;
+    }
+
+    header p {
+        height: 100%;
+
+        padding: 0 20px;
+    }
+
+    header .current {
+        color: red;
+    }
+</style>
+
+<script>
+    let navigation = [
+        "Home", "About", "Pricing", "Contact"
+    ]
+
+    let current = "About"
+</script>

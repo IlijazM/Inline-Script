@@ -5,7 +5,16 @@ const $ = (v) => d.querySelector(v)
 const $a = (v) => d.querySelectorAll(v)
 const append = (str) => body.innerHTML += str
 
+let debug = false
+function debugLog(message) {
+    if (debug) console.log(message)
+}
+
 let I = 0;
+function getUniqueClassName() {
+    I++;
+    return `xdiv-id-${I}`
+}
 
 async function GET(theUrl) {
     const xmlHttp = new XMLHttpRequest()
@@ -14,124 +23,144 @@ async function GET(theUrl) {
     return xmlHttp
 }
 
-let xdivs = {}
+function reverseSanitation(html) {
+    const replaceList = {
+        '&gt;': '>',
+        '&lt;': '<',
+    }
+    Object.keys(replaceList).forEach((i) => {
+        html = html.split(i).join(replaceList[i])
+    })
 
-function convertHTMLString(script) {
-    let out = ""
+    return html
+}
 
-    let depth = 0
-    for (let i = 0; i < script.length; i++) {
-        const c = script.substr(i, 1)
-        const cc = script.substr(i, 2)
+function compileHTMLExpression(html) {
+    debugLog("compiling html expression")
+    debugLog(html)
+
+    let opened = 0
+    let newHTML = ""
+    for (let i = 0; i < html.length; i++) {
+        const c = html.substr(i, 1)
+        const cc = html.substr(i, 2)
 
         if (cc === "(<") {
-            for (let j = 0; j < depth; j++) {
-                out += "\\"
-                if (j != 0) out += "\\"
-            }
+            opened++
 
-            out += "`<"
-            i++
-            depth++
+            if (opened === 1) {
+                newHTML += "`"
+                continue
+            }
         } else if (cc === ">)") {
-            depth--
-            out += ">"
+            opened--
 
-            for (let j = 0; j < depth; j++) {
-                out += "\\"
-                if (j != 0) out += "\\"
+            if (opened === 0) {
+                newHTML += ">`"
+                i++
+                continue
             }
-
-            out += "`"
-            i++
-        } else {
-            out += c
         }
+
+        newHTML += c
     }
 
-    return out
+    debugLog(newHTML)
+    return newHTML
 }
 
-async function compile(p) {
-    const srcs = p.querySelectorAll("*[src]")
+function compile(element, id) {
+    debugLog("compiling element: ")
+    debugLog(element)
+    debugLog(element.outerHTML)
 
-    for (let i = 0; i < srcs.length; i++) {
-        const element = srcs[i];
+    let html = element.innerHTML
+    html = reverseSanitation(html)
+    html = compileHTMLExpression(html)
 
-        const res = await GET(window.location.origin + "/" + element.attributes.getNamedItem("src").value)
+    element.initialContent = html
+
+    element.classList.add("xid-" + id.join("-"))
+
+    element.render = function () {
+        debugLog("render element: ")
+        debugLog(element)
+        debugLog(this.initialContent)
+
+        let res = ""
 
         try {
-            element.isLoader = true
-            element.innerHTML = res.responseText
-
-            element.querySelectorAll("script").forEach((v) => {
-                let script = d.createElement("script")
-                script.innerHTML = v.innerHTML
-                body.appendChild(script)
-                compile(element)
-            })
-        } catch {
+            res = eval(this.initialContent)
+        } catch (err) {
+            console.error(err)
         }
+
+        if (res instanceof Array) res = res.join("")
+        if (res == undefined) res = ""
+
+        this.innerHTML = res
+
+        debugLog(this.outerHTML)
+        debugLog("finish render")
+
+        scan(this, id)
     }
 
-    const all = p.querySelectorAll('*')
-
-    for (let i = 0; i < all.length; i++) {
-        const element = all[i];
-        if (!element.innerHTML.trim().startsWith("{{")) continue
-
-        if (element.parentElement == null) {
-            console.log("has no parent element")
-            console.log(element)
-        }
-
-        // sets a unique class name
-        const id = `xdiv-id-${I++}`;
-        element.classList.add(id);
-
-        // sets the initial content
-        const replaceList = {
-            '&gt;': '>',
-            '&lt;': '<',
-        }
-        element.initialContent = element.innerHTML
-        Object.keys(replaceList).forEach((i) => {
-            element.initialContent = element.initialContent.split(i).join(replaceList[i])
-        })
-        element.initialContent = convertHTMLString(element.initialContent)
-
-        // sets the rerender function
-        element.rerender = function () {
-            let res
-
-            try {
-                res = eval(`
-                const element = document.getElementsByClassName('${id}').item(0);
-                let _ = '';
-                ${this.initialContent}
-            `);
-            } catch (e) {
-                console.error(e)
-                console.log(this.initialContent)
-                res = ""
-            }
-
-            if (res instanceof Array) res = res.join("")
-            if (res == undefined) res = ""
-
-            this.innerHTML = res
-
-            compile(this)
-
-            return this.innerHTML
-        };
-
-        element.rerender();
-
-        // add the element to the x array
-        xdivs[element.id] = element
-        // console.log(element)
-    }
+    element.render()
 }
 
-compile(document.body)
+function scan(parent, initialId) {
+    debugLog("id: " + initialId)
+
+    debugLog("scanning element: ")
+    debugLog(parent)
+    const childs = Array.from(parent.children)
+
+    for (const i in childs) {
+        const element = childs[i]
+
+        // skip scripts and styles
+        if (["SCRIPT", "STYLE"].includes(element.tagName)) continue
+
+        debugLog("looping over:")
+        debugLog(element)
+        debugLog(element.outerHTML)
+
+        if (element.innerHTML.startsWith("{")) {
+            debugLog("It is a inline javascript expression")
+
+            let id = []
+            if (initialId != null) initialId.forEach((v) => id.push(v))
+            id.push(i)
+
+            compile(element, id)
+        } else if (element.attributes.getNamedItem("xsrc") != null) {
+            debugLog("It contains a 'xsrc' attribute")
+
+            const xsrc = element.attributes.getNamedItem("xsrc").value
+
+            GET(window.location.origin + "/" + xsrc).then((res) => {
+                const content = res.responseText
+                console.log(content)
+                element.innerHTML = content
+                console.log(element.innerHTML)
+
+                // evaluating scripts
+                element.querySelectorAll("script").forEach((v) => {
+                    let script = d.createElement("script")
+                    script.innerHTML = v.innerHTML
+                    body.appendChild(script)
+                })
+
+                scan(element)
+            })
+        } else {
+            debugLog("It is a regular element")
+            scan(element)
+        }
+    }
+
+    debugLog("finish scanning")
+}
+
+scan(body)
