@@ -7,7 +7,6 @@
     <title>Document</title>
 
     <script src="scripts/xdiv.js" defer></script>
-    <link rel="stylesheet" href="/plume-all.css">
 
     <style>
         .fade {
@@ -45,22 +44,41 @@
             margin: 0;
         }
 
-        @media only screen and (max-width: 1000px) {
-            body {
-                background: red;
-            }
+        .wrapper {
+            padding-left: calc((100vw - 900px) / 2);
+            padding-right: calc((100vw - 900px) / 2);
+        }
+
+        .button {
+            display: flex;
+            align-items: center;
+
+            height: min-content;
+
+            margin: 4px 2px;
+            padding: 8px 20px;
+
+            background: black;
+            color: white;
+
+            border-radius: 20px;
+            text-align: center;
+
+            text-decoration: none;
+            font-size: 14px;
+
         }
     </style>
 </head>
 
-<body class="plume">
+<body>
     <div xsrc="components/header.html"></div>
 
     <div reacts-to="currentPage">{{
         $("#content").style.opacity = 0
         setTimeout(() => {
             $("#content").style.opacity = 1
-            content = (<div xsrc="pages/${currentPage}.html"></div>)
+            content = (<div xsrc="pages/${currentPage}.html" p="Hello, world!"></div>)
         }, 400);
 
         ""
@@ -69,7 +87,7 @@
     <div class="fade" id="content" reacts-to="content">{{ content }}</div>
 
     <script>
-        let currentPage = "Showcase"
+        let currentPage = "Overview"
         let content = ""
     </script>
 

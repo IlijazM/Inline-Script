@@ -1,0 +1,40 @@
+<div class="hero">
+    <div class="title">
+        <h1 reacts-to="herocontent">{herocontent}</h1>
+        <h2>{productName + " is a lighweight frontend framework that will help you to improve your workflow."}</h2>
+    </div>
+</div>
+
+<style>
+    .hero {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 100%;
+        height: calc(100vh - 90px);
+
+        background: grey;
+    }
+
+    .title {
+        padding: 0 200px;
+
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 40px;
+    }
+
+    h2 {
+        font-size: 14px;
+        font-weight: normal;
+
+        padding: 20px 150px;
+    }
+</style>
+
+<script>
+    let herocontent = productName + " as Frontend Framework"
+</script>

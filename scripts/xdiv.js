@@ -49,8 +49,6 @@ function cssToScopedCss(scope, css) {
         })
     }
 
-    console.log(replaceList)
-
     replaceList.forEach((replace) => {
         css = css.replace(new RegExp(replace, "g"), scope + " " + replace)
     })
@@ -140,7 +138,6 @@ function compileReactsTo(element, uid) {
                 setInterval(()=>{
                     if (${copy} !== ${reacts_to}) {
                         ${copy} = ${reacts_to};
-                        console.log("REACT! '${reacts_to}'")
                         eval(reactionSubscriptions["${reacts_to}"])
                     }
                 }, 10)
@@ -180,6 +177,7 @@ function compile(element) {
         try {
             res = eval(this.initialContent)
         } catch (err) {
+            console.log(this.initialContent)
             console.error(err)
         }
 
@@ -212,33 +210,45 @@ function scan(parent, dontCompile) {
         debugLog(element)
         debugLog(element.outerHTML)
 
+        // look at attributes
+        const attributes = Array.from(element.attributes)
+        for (let j = 0; j < attributes.length; j++) {
+            if (element.attributes[j] == undefined) continue
+            const value = element.attributes[j].value
+
+            if (value.trim().startsWith("{")) {
+                element.attributes.getNamedItem(element.attributes[j]).value = eval(value)
+            }
+        }
+
         if (element.innerHTML.startsWith("{")) {
             if (dontCompile) continue
             debugLog("It is a inline javascript expression")
 
             compile(element)
         } else if (element.attributes.getNamedItem("xsrc") != null) {
+            const el = d.createElement("div")
             const id = getUniqueClassName()
-            element.classList.add(id)
+            el.classList.add(id)
 
             debugLog("It contains a 'xsrc' attribute")
 
             const xsrc = element.attributes.getNamedItem("xsrc").value
 
             GET(window.location.origin + "/" + xsrc).then((res) => {
-                let content = res.responseText
-                content = content.split("?").join("&quest;")
-                element.innerHTML = content
+                let content = `{ p="HELLO";(<div>${res.responseText}</div>)}`
+                el.innerHTML = content
+                element.appendChild(el)
 
                 // evaluating scripts
-                element.querySelectorAll("script").forEach((v) => {
+                el.querySelectorAll("script").forEach((v) => {
                     let script = d.createElement("script")
                     script.innerHTML = v.innerHTML
                     body.appendChild(script)
                 })
 
                 // scoping styles
-                element.querySelectorAll("style").forEach((v) => {
+                el.querySelectorAll("style").forEach((v) => {
                     v.innerHTML = cssToScopedCss("." + id, v.innerHTML)
                 })
 
