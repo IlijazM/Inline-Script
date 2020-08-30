@@ -30,43 +30,32 @@ async function GET(theUrl) {
 }
 
 function cssToScopedCss(scope, css) {
-    const STATE_CLOSED = 0
-    const STATE_SCOPED = 1
-    const STATE_OPENED = 2
+    // removes all comments
+    css = css.replace(/\/\*([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*\/+/g, "")
 
-    let newCss = ""
-    let state = STATE_CLOSED
+    const regex = /([^\r\n,{}]+)(,(?=[^}]*{)|\s*{)/g
+    let m
+    let replaceList = []
 
-    for (let i = 0; i < css.length; i++) {
-        const c = css.substr(i, 1)
-
-        if (state === STATE_CLOSED && /[a-zA-Z_-]/.test(c)) {
-            state = STATE_SCOPED
-            newCss += scope + " " + css
-            continue
+    while ((m = regex.exec(css)) !== null) {
+        if (m.index === regex.lastIndex) {
+            regex.lastIndex++
         }
 
-        if (state === STATE_SCOPED && c === ",") {
-            newCss += scope + " " + css
-            continue
-        }
-
-        if (state === STATE_SCOPED && c === "{") {
-            state === STATE_OPENED
-            newCss += css
-            continue
-        }
-
-        if (state === STATE_OPENED && c === "}") {
-            state === STATE_CLOSED
-            newCss += css
-            continue
-        }
-
-        newCss += css
+        m.forEach((match, groupIndex) => {
+            if (groupIndex == 0 && !match.startsWith("@")) {
+                if (!replaceList.includes(match)) replaceList.push(match)
+            }
+        })
     }
 
-    return newCss
+    console.log(replaceList)
+
+    replaceList.forEach((replace) => {
+        css = css.replace(new RegExp(replace, "g"), scope + " " + replace)
+    })
+
+    return css
 }
 
 function reverseSanitation(html) {
@@ -229,6 +218,9 @@ function scan(parent, dontCompile) {
 
             compile(element)
         } else if (element.attributes.getNamedItem("xsrc") != null) {
+            const id = getUniqueClassName()
+            element.classList.add(id)
+
             debugLog("It contains a 'xsrc' attribute")
 
             const xsrc = element.attributes.getNamedItem("xsrc").value
@@ -247,7 +239,7 @@ function scan(parent, dontCompile) {
 
                 // scoping styles
                 element.querySelectorAll("style").forEach((v) => {
-                    v.innerHTML = "/**/ " + v.innerHTML
+                    v.innerHTML = cssToScopedCss("." + id, v.innerHTML)
                 })
 
                 scan(element)

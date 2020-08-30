@@ -7,6 +7,7 @@
     <title>Document</title>
 
     <script src="scripts/xdiv.js" defer></script>
+    <link rel="stylesheet" href="/plume-all.css">
 
     <style>
         .fade {
@@ -43,10 +44,16 @@
         body {
             margin: 0;
         }
+
+        @media only screen and (max-width: 1000px) {
+            body {
+                background: red;
+            }
+        }
     </style>
 </head>
 
-<body>
+<body class="plume">
     <div xsrc="components/header.html"></div>
 
     <div reacts-to="currentPage">{{
@@ -62,7 +69,7 @@
     <div class="fade" id="content" reacts-to="content">{{ content }}</div>
 
     <script>
-        let currentPage = "Overview"
+        let currentPage = "Showcase"
         let content = ""
     </script>
 
