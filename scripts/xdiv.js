@@ -29,6 +29,46 @@ async function GET(theUrl) {
     return xmlHttp
 }
 
+function cssToScopedCss(scope, css) {
+    const STATE_CLOSED = 0
+    const STATE_SCOPED = 1
+    const STATE_OPENED = 2
+
+    let newCss = ""
+    let state = STATE_CLOSED
+
+    for (let i = 0; i < css.length; i++) {
+        const c = css.substr(i, 1)
+
+        if (state === STATE_CLOSED && /[a-zA-Z_-]/.test(c)) {
+            state = STATE_SCOPED
+            newCss += scope + " " + css
+            continue
+        }
+
+        if (state === STATE_SCOPED && c === ",") {
+            newCss += scope + " " + css
+            continue
+        }
+
+        if (state === STATE_SCOPED && c === "{") {
+            state === STATE_OPENED
+            newCss += css
+            continue
+        }
+
+        if (state === STATE_OPENED && c === "}") {
+            state === STATE_CLOSED
+            newCss += css
+            continue
+        }
+
+        newCss += css
+    }
+
+    return newCss
+}
+
 function reverseSanitation(html) {
     const replaceList = {
         '&gt;': '>',
@@ -42,16 +82,20 @@ function reverseSanitation(html) {
 }
 
 const compileHTML = `eval(\`
-    let element = $e(\\\`#\\\`);
+    let $__element__ = $e(\\\`#\\\`);
     ${compile}
-    if (element.innerHTML.trim().startsWith("{")) compile(element);
-    element.outerHTML
+    if ($__element__.innerHTML.trim().startsWith("{")) compile($__element__);
+    $__element__.outerHTML
 \`)
 `
 
 function compileHTMLExpression(html) {
     debugLog("compiling html expression")
     debugLog(html)
+
+    if (html.includes('`')) {
+        throw new Error("A scripted element may not contain a '`' symbol.")
+    }
 
     let opened = 0
     let newHTML = ""
