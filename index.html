@@ -74,15 +74,13 @@
 </head>
 
 <body>
-    <div id="random">{{
-        let a = Math.random()
-        
-        (<h1>{
-            Math.random()
-        }</h1>)
+    <div id="e1">{{
+        let random = Math.random();
+
+        (<h1 id="e2">{ random > 0.5 ? 'You won 🎉' : "You lost 😥" }</h1>)
     }}</div>
 
-    <button onclick="random.render()">rerender</button>
+    <button onclick="e1.render()">rerender</button>
 </body>
 
 </html>
