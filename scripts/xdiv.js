@@ -167,6 +167,52 @@ function compile(element) {
 
     compileReactsTo(element, uid)
 
+    const attributes = Array.from(element.attributes)
+    for (let j = 0; j < attributes.length; j++) {
+        if (element.attributes[j] == undefined) continue
+        const value = element.attributes[j].value
+
+        if (value.trim().includes("{")) {
+            let inBrackets = /\{(.*?)\}/g
+
+            let replaceList = []
+
+            let m
+            while ((m = inBrackets.exec(value)) !== null) {
+                if (m.index === inBrackets.lastIndex) {
+                    inBrackets.lastIndex++
+                }
+
+                m.forEach((match, groupIndex) => {
+                    if (groupIndex == 0) {
+                        if (!replaceList.includes(match)) replaceList.push(match)
+                    }
+                })
+            }
+
+            let newValue = value
+            replaceList.forEach((replace) => {
+                let val = undefined
+
+                try {
+                    val = eval(replace)
+                } catch (e) {
+                    console.error("Can't evaluate attribute value " + replace)
+                    console.error(e)
+                }
+
+
+                if (typeof val === "string") val = "'" + val + "'"
+
+                newValue = newValue.split(replace).join(val)
+            })
+
+            element.attributes[j].value = newValue
+        }
+    }
+
+    // element.on = function (event, f) this.setAttribute("on" + event, f.toString() + f.name + "(event)") }
+
     element.render = function () {
         debugLog("render element: ")
         debugLog(element)
@@ -210,17 +256,6 @@ function scan(parent, dontCompile) {
         debugLog(element)
         debugLog(element.outerHTML)
 
-        // look at attributes
-        const attributes = Array.from(element.attributes)
-        for (let j = 0; j < attributes.length; j++) {
-            if (element.attributes[j] == undefined) continue
-            const value = element.attributes[j].value
-
-            if (value.trim().startsWith("{")) {
-                element.attributes.getNamedItem(element.attributes[j]).value = eval(value)
-            }
-        }
-
         if (element.innerHTML.startsWith("{")) {
             if (dontCompile) continue
             debugLog("It is a inline javascript expression")
@@ -256,6 +291,51 @@ function scan(parent, dontCompile) {
             })
         } else {
             debugLog("It is a regular element")
+            //#region Compile attributes
+            const attributes = Array.from(element.attributes)
+            for (let j = 0; j < attributes.length; j++) {
+                if (element.attributes[j] == undefined) continue
+                const value = element.attributes[j].value
+
+                if (value.trim().includes("{")) {
+                    let inBrackets = /\{(.*?)\}/g
+
+                    let replaceList = []
+
+                    let m
+                    while ((m = inBrackets.exec(value)) !== null) {
+                        if (m.index === inBrackets.lastIndex) {
+                            inBrackets.lastIndex++
+                        }
+
+                        m.forEach((match, groupIndex) => {
+                            if (groupIndex == 0) {
+                                if (!replaceList.includes(match)) replaceList.push(match)
+                            }
+                        })
+                    }
+
+                    let newValue = value
+                    replaceList.forEach((replace) => {
+                        let val = undefined
+
+                        try {
+                            val = eval(replace)
+                        } catch (e) {
+                            console.error("Can't evaluate attribute value " + replace)
+                            console.error(e)
+                        }
+
+
+                        if (typeof val === "string") val = "'" + val + "'"
+
+                        newValue = newValue.split(replace).join(val)
+                    })
+
+                    element.attributes[j].value = newValue
+                }
+            }
+            //#endregion
             scan(element, dontCompile)
         }
     }
