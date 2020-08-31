@@ -11,11 +11,6 @@ function $e(htmlString) {
     return div.firstChild;
 }
 
-let debug = false
-function debugLog(message) {
-    if (debug) console.log(message)
-}
-
 let I = 0;
 function getUniqueClassName() {
     I++;
@@ -70,6 +65,7 @@ function reverseSanitation(html) {
 
 const compileHTML = `eval(\`
     let $__element__ = $e(\\\`#\\\`);
+    ${scan}
     ${compile}
     if ($__element__.innerHTML.trim().startsWith("{")) compile($__element__);
     $__element__.outerHTML
@@ -77,9 +73,6 @@ const compileHTML = `eval(\`
 `
 
 function compileHTMLExpression(html) {
-    debugLog("compiling html expression")
-    debugLog(html)
-
     if (html.includes('`')) {
         throw new Error("A scripted element may not contain a '`' symbol.")
     }
@@ -111,7 +104,6 @@ function compileHTMLExpression(html) {
         newHTML += c
     }
 
-    debugLog(newHTML)
     return newHTML
 }
 
@@ -152,10 +144,6 @@ function compileReactsTo(element, uid) {
 //#endregion
 
 function compile(element) {
-    debugLog("compiling element: ")
-    debugLog(element)
-    debugLog(element.outerHTML)
-
     let html = element.innerHTML
     html = reverseSanitation(html)
     html = compileHTMLExpression(html)
@@ -214,10 +202,6 @@ function compile(element) {
     // element.on = function (event, f) this.setAttribute("on" + event, f.toString() + f.name + "(event)") }
 
     element.render = function () {
-        debugLog("render element: ")
-        debugLog(element)
-        debugLog(this.initialContent)
-
         let res = ""
 
         try {
@@ -232,9 +216,6 @@ function compile(element) {
 
         this.innerHTML = res
 
-        debugLog(this.outerHTML)
-        debugLog("finish render")
-
         scan(element, false)
     }
 
@@ -242,8 +223,6 @@ function compile(element) {
 }
 
 function scan(parent, dontCompile) {
-    debugLog("scanning element: ")
-    debugLog(parent)
     const childs = Array.from(parent.children)
 
     for (const i in childs) {
@@ -252,13 +231,8 @@ function scan(parent, dontCompile) {
         // skip scripts and styles
         if (["SCRIPT", "STYLE"].includes(element.tagName)) continue
 
-        debugLog("looping over:")
-        debugLog(element)
-        debugLog(element.outerHTML)
-
-        if (element.innerHTML.startsWith("{")) {
+        if (element.innerHTML.trim().startsWith("{")) {
             if (dontCompile) continue
-            debugLog("It is a inline javascript expression")
 
             compile(element)
         } else if (element.attributes.getNamedItem("xsrc") != null) {
@@ -266,23 +240,37 @@ function scan(parent, dontCompile) {
             const id = getUniqueClassName()
             el.classList.add(id)
 
-            debugLog("It contains a 'xsrc' attribute")
-
             const xsrc = element.attributes.getNamedItem("xsrc").value
 
             GET(window.location.origin + "/" + xsrc).then((res) => {
-                let content = `{ p="HELLO";(<div>${res.responseText}</div>)}`
+                let varsList = Array.from(element.attributes)
+                varsList = varsList.filter(v => !["xsrc", "id", "class"].includes(v.name))
+
+                let vars = ""
+                varsList.forEach((v) => {
+                    let val = v.value
+
+                    if (isNaN(parseInt(val))) {
+                        val = JSON.stringify(val)
+                    }
+                    vars += "let " + v.name + "=" + val + ";"
+                })
+
+                let content = "<div>{" + vars + "(<div>" + res.responseText + "</div>)}</div>"
+
+                if (vars !== "") {
+                    console.log("RUN")
+                }
+
                 el.innerHTML = content
                 element.appendChild(el)
 
-                // evaluating scripts
                 el.querySelectorAll("script").forEach((v) => {
                     let script = d.createElement("script")
                     script.innerHTML = v.innerHTML
                     body.appendChild(script)
                 })
 
-                // scoping styles
                 el.querySelectorAll("style").forEach((v) => {
                     v.innerHTML = cssToScopedCss("." + id, v.innerHTML)
                 })
@@ -290,8 +278,6 @@ function scan(parent, dontCompile) {
                 scan(element)
             })
         } else {
-            debugLog("It is a regular element")
-            //#region Compile attributes
             const attributes = Array.from(element.attributes)
             for (let j = 0; j < attributes.length; j++) {
                 if (element.attributes[j] == undefined) continue
@@ -335,12 +321,9 @@ function scan(parent, dontCompile) {
                     element.attributes[j].value = newValue
                 }
             }
-            //#endregion
             scan(element, dontCompile)
         }
     }
-
-    debugLog("finish scanning")
 }
 
 scan(body)
