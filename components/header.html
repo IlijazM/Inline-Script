@@ -20,11 +20,7 @@
     <div class="left" reacts-to="currentPage">{{
         navigation.map((nav) => {
             return (<div>{
-                nav == currentPage ? (<p class="current">{nav}</p>) : (<p onclick="currentPage={nav}">{
-                    this.onmousedown = function (event) { console.log(event)}
-
-                    nav
-                }</p>)
+                nav == currentPage ? (<p class="current">{nav}</p>) : (<p onclick="currentPage={nav}">{nav}</p>)
             }</div>)
         })
 

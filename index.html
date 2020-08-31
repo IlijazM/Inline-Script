@@ -6,7 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 
-    <script src="scripts/xdiv.js" defer></script>
+    <script src="scripts/inlinescript.js" defer></script>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet">
 
     <style>
         .fade {
@@ -15,15 +19,7 @@
         }
 
         html {
-            font-family:
-                'Source Sans Pro',
-                -apple-system,
-                BlinkMacSystemFont,
-                'Segoe UI',
-                Roboto,
-                'Helvetica Neue',
-                Arial,
-                sans-serif;
+            font-family: 'Montserrat', sans-serif;
             font-size: 16px;
             word-spacing: 1px;
             -ms-text-size-adjust: 100%;
@@ -49,6 +45,13 @@
             padding-right: calc((100vw - 900px) / 2);
         }
 
+        @media only screen and (max-width: 900px) {
+            .wrapper {
+                padding-left: 50px;
+                padding-right: 50px;
+            }
+        }
+
         .button {
             display: flex;
             align-items: center;
@@ -70,27 +73,16 @@
     </style>
 </head>
 
-<body a=1 b=yo>
-    <div xsrc="components/header.html"></div>
-
-    <div reacts-to="currentPage">{{
-        $("#content").style.opacity = 0
-        setTimeout(() => {
-            $("#content").style.opacity = 1
-            content = (<div xsrc="pages/${currentPage}.html" p="Hello, world!"></div>)
-        }, 400);
-
-        ""
+<body>
+    <div id="random">{{
+        let a = Math.random()
+        
+        (<h1>{
+            Math.random()
+        }</h1>)
     }}</div>
 
-    <div class="fade" id="content" reacts-to="content">{{ content }}</div>
-
-    <script>
-        let currentPage = "Overview"
-        let content = ""
-    </script>
-
-    <script src="scripts/app.js"></script>
+    <button onclick="random.render()">rerender</button>
 </body>
 
 </html>

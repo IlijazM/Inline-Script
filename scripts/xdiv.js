@@ -38,7 +38,8 @@ function cssToScopedCss(scope, css) {
         }
 
         m.forEach((match, groupIndex) => {
-            if (groupIndex == 0 && !match.startsWith("@")) {
+            match = match.trim()
+            if (groupIndex == 0 && !match.startsWith("@") && !match.startsWith("from") && !match.startsWith("to") && !/[0-9]/.test(match.substr(0, 1))) {
                 if (!replaceList.includes(match)) replaceList.push(match)
             }
         })
@@ -160,8 +161,8 @@ function compile(element) {
         if (element.attributes[j] == undefined) continue
         const value = element.attributes[j].value
 
-        if (value.trim().includes("{")) {
-            let inBrackets = /\{(.*?)\}/g
+        if (value.trim().includes("{{")) {
+            let inBrackets = /\{\{(.*?)\}\}/g
 
             let replaceList = []
 
@@ -250,24 +251,53 @@ function scan(parent, dontCompile) {
                 varsList.forEach((v) => {
                     let val = v.value
 
-                    if (isNaN(parseInt(val))) {
-                        val = JSON.stringify(val)
+                    let inBrackets = /\{\{(.*?)\}\}/g
+
+                    let replaceList = []
+
+                    let m
+                    while ((m = inBrackets.exec(val)) !== null) {
+                        if (m.index === inBrackets.lastIndex) {
+                            inBrackets.lastIndex++
+                        }
+
+                        m.forEach((match, groupIndex) => {
+                            if (groupIndex == 0) {
+                                if (!replaceList.includes(match)) replaceList.push(match)
+                            }
+                        })
                     }
+
+                    let newValue = val
+                    replaceList.forEach((replace) => {
+                        let _val = undefined
+
+                        try {
+                            _val = eval(replace)
+                            newValue = _val
+                        } catch (e) {
+                            console.error("Can't evaluate attribute value " + replace)
+                            console.error(e)
+                        }
+
+                    })
+
+                    val = newValue
+
+                    // if (!val.startsWith("{") && !val.startsWith("[") && !isNaN(parseInt(val))) val = JSON.stringify(val)
+
                     vars += "let " + v.name + "=" + val + ";"
+                    console.log(vars)
                 })
 
                 let content = "<div>{" + vars + "(<div>" + res.responseText + "</div>)}</div>"
-
-                if (vars !== "") {
-                    console.log("RUN")
-                }
 
                 el.innerHTML = content
                 element.appendChild(el)
 
                 el.querySelectorAll("script").forEach((v) => {
                     let script = d.createElement("script")
-                    script.innerHTML = v.innerHTML
+                    script.innerHTML = vars + v.innerHTML
                     body.appendChild(script)
                 })
 
@@ -283,8 +313,8 @@ function scan(parent, dontCompile) {
                 if (element.attributes[j] == undefined) continue
                 const value = element.attributes[j].value
 
-                if (value.trim().includes("{")) {
-                    let inBrackets = /\{(.*?)\}/g
+                if (value.trim().includes("{{")) {
+                    let inBrackets = /\{\{(.*?)\}\}/g
 
                     let replaceList = []
 

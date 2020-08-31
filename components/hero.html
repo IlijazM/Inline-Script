@@ -1,9 +1,9 @@
-<div class="hero">
-    <div class="title">
-        <h1 reacts-to="herocontent">{herocontent}</h1>
-        <h2>{productName + " is a lighweight frontend framework that will help you to improve your workflow."}</h2>
-    </div>
-</div>
+<div class="hero">{{
+    let typewritermessages = ['{productName} is more than another Frontend Framework', 'Really'];
+    
+    (<h1 xsrc="components/typewriter.html"
+    typewritermessages="{{typewritermessages}}"></h1>)
+    }}</div>
 
 <style>
     .hero {
@@ -14,7 +14,7 @@
         width: 100%;
         height: calc(100vh - 90px);
 
-        background: grey;
+        background: white;
     }
 
     .title {
@@ -36,5 +36,9 @@
 </style>
 
 <script>
-    let herocontent = productName + " as Frontend Framework"
+    let herocontent = ""
+
+    setInterval(() => {
+        herocontent += "a"
+    }, 100)
 </script>
