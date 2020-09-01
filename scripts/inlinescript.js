@@ -143,6 +143,7 @@ function inlinescript(command, args) {
                     }
 
                     // TODO: convert eval result into string
+                    if (eval_result instanceof Array) eval_result = eval_result.join("")
 
                     element.innerHTML = eval_result
                 }

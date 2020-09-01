@@ -7,6 +7,8 @@
     <title>Document</title>
 
     <script src="scripts/inlinescript.js" defer></script>
+    <script src="scripts/scopedstyle.js" defer></script>
+    <script src="scripts/util.js"></script>
 
     <link
         href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
@@ -75,11 +77,11 @@
 
 <body>
     <div id="test">{{
-        let page = Math.random() > 0.5 ? 1 : 2
-        import `page${page}.html`
+        (5).map((i) => {
+            i++
+            return `<h${i}>Hello, world</h${i}>`
+        })
     }}</div>
-
-    <button onclick="test.render()">Rerender</button>
 </body>
 
 </html>
