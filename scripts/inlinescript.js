@@ -36,6 +36,15 @@ function reverseSanitation(html) {
     return html
 }
 
+const inlineScriptUidPrefix = "inline-script-uid-"
+let inlineScriptId = 0
+function generateUniqueId() { return inlineScriptId++ }
+
+let reactiveElements = {}
+function addReactionListener(varName) {
+    reactiveElements[varName] = []
+}
+
 function inlinescript(element) {
     function compileHtmlExpression(html) {
         html = html.replace(htmlStartRegex, htmlStartScript)
@@ -44,6 +53,18 @@ function inlinescript(element) {
         if (lastIndex !== -1) html = html.slice(0, lastIndex) + htmlEndScript + html.slice(lastIndex + 2)
 
         return html
+    }
+
+    function compileReactions(element) {
+        if (element.attributes.getNamedItem("reacts-to") == null) return
+
+        const reactsTo = element.attributes.getNamedItem("reacts-to").value
+
+        if (reactiveElements[reactsTo] == undefined) {
+            addReactionListener(reactsTo)
+        }
+
+        reactiveElements[reactsTo].push(element.uniqueId)
     }
 
     function compileElementsContent(element) {
@@ -101,10 +122,16 @@ function inlinescript(element) {
 
     function compileElement(element) {
         try {
+            const uid = generateUniqueId()
+            element.uniqueId = uid
+            element.classList.add(inlineScriptUidPrefix + uid)
+
             compileElementsContent(element)
 
             if (!element.hasInlinescript) {
                 compileChilds(element)
+            } else {
+                compileReactions(element)
             }
         } catch (err) {
             console_group_("An error occured while compiling the element:", () => {
@@ -116,10 +143,6 @@ function inlinescript(element) {
         return element
     }
 
-    function createElement() {
-
-    }
-
     if (element != undefined) {
         compileElement(element)
         return element
@@ -127,3 +150,24 @@ function inlinescript(element) {
 }
 
 inlinescript(body)
+
+// reactions
+let oldValues = []
+setInterval(() => {
+    for (let varName in reactiveElements) {
+        const reactiveElement = reactiveElements[varName]
+        const varValue = eval(varName)
+
+        if (oldValues[varName] !== varValue) {
+            oldValues[varName] = varValue;
+            for (let i in reactiveElement) {
+                try {
+                    $q("." + inlineScriptUidPrefix + reactiveElement[i]).render()
+                } catch {
+                    console_log("removed element")
+                    reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
+                }
+            }
+        }
+    }
+}, 50)
