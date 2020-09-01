@@ -20,7 +20,6 @@ const console_group_ = (g, f) => { console_group(g); f(); console_groupEnd(g) }
 const importRegex = /import\s\s*(["'`])(?:(?=(\\?))\2.)*?\1/gm
 const stringRegex = /(["'`])(?:(?=(\\?))\2.)*?\1/gm
 
-const quotesRegex = /(["'´])(?:(?=(\\?))\2.)*?\1/gm
 const htmlStartRegex = /\(\s*</m
 const htmlEndRegex = />\s*\)/gm
 
@@ -111,6 +110,8 @@ function inlinescript(command, args) {
 
     function compileElementsContent(element) {
         try {
+            if (element.inlinescript !== undefined) return
+
             let content = element.innerHTML
             content = reverseSanitation(content)
 
@@ -121,11 +122,13 @@ function inlinescript(command, args) {
             }
 
             if (content.trim().startsWith("{")) {
-                element.inlinescript = compileHtmlExpression(content)
-                element.inlinescript = compileImportExpression(content)
                 element.hasInlinescript = true
+                content = compileHtmlExpression(content)
+                content = compileImportExpression(content)
+                element.inlinescript = content
 
                 element.render = () => {
+                    console.log(element)
                     let eval_result
 
                     try {

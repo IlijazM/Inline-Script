@@ -75,9 +75,11 @@
 
 <body>
     <div id="test">{{
-        let productName = "Inline Script"
-        import 'components/header.html'
+        let page = Math.random() > 0.5 ? 1 : 2
+        import `page${page}.html`
     }}</div>
+
+    <button onclick="test.render()">Rerender</button>
 </body>
 
 </html>
