@@ -17,12 +17,15 @@ const console_group = console.group
 const console_groupEnd = console.groupEnd
 const console_group_ = (g, f) => { console_group(g); f(); console_groupEnd(g) }
 
+const importRegex = /import\s\s*(["'`])(?:(?=(\\?))\2.)*?\1/gm
+const stringRegex = /(["'`])(?:(?=(\\?))\2.)*?\1/gm
+
 const quotesRegex = /(["'´])(?:(?=(\\?))\2.)*?\1/gm
 const htmlStartRegex = /\(\s*</m
 const htmlEndRegex = />\s*\)/gm
 
-const htmlStartScript = "eval(`" + inlinescript + "inlinescript($e(\\`<"
-const htmlEndScript = ">\\`)).outerHTML`)"
+const htmlStartScript = "eval(`" + inlinescript + "inlinescript(COMMAND_COMPILE,{element:$e(\\`<"
+const htmlEndScript = ">\\`)}).outerHTML`)"
 
 function reverseSanitation(html) {
     const replaceList = {
@@ -45,7 +48,46 @@ function addReactionListener(varName) {
     reactiveElements[varName] = []
 }
 
-function inlinescript(element) {
+const COMMAND_COMPILE = 0
+const COMMAND_INCLUDE = 1
+
+function inlinescript(command, args) {
+    function include(url, element) {
+        const xmlHttp = new XMLHttpRequest()
+        xmlHttp.onload = function () {
+            element.innerHTML = xmlHttp.responseText
+            inlinescript(COMMAND_COMPILE, { element: element })
+        }
+        xmlHttp.open("GET", url, true)
+        xmlHttp.send(null)
+    }
+
+    function compileImportExpression(html) {
+        const regex = importRegex
+        let m
+        let replaceList = []
+
+        while ((m = regex.exec(html)) !== null) {
+            if (m.index === regex.lastIndex) {
+                regex.lastIndex++
+            }
+
+            m.forEach((match, groupIndex) => {
+                if (groupIndex === 0) {
+                    if (!replaceList.includes(match)) replaceList.push(match)
+                }
+            })
+        }
+
+        replaceList.forEach((replace) => {
+            const importString = stringRegex.exec(replace)[0]
+
+            html = html.split(replace).join(inlinescript + "inlinescript(COMMAND_INCLUDE,{url:" + importString + ",element:element})")
+        })
+
+        return html
+    }
+
     function compileHtmlExpression(html) {
         html = html.replace(htmlStartRegex, htmlStartScript)
 
@@ -80,6 +122,7 @@ function inlinescript(element) {
 
             if (content.trim().startsWith("{")) {
                 element.inlinescript = compileHtmlExpression(content)
+                element.inlinescript = compileImportExpression(content)
                 element.hasInlinescript = true
 
                 element.render = () => {
@@ -143,13 +186,19 @@ function inlinescript(element) {
         return element
     }
 
-    if (element != undefined) {
-        compileElement(element)
-        return element
+    if (command != undefined) {
+        if (command === COMMAND_COMPILE) {
+            compileElement(args.element)
+            return args.element
+        } else if (command === COMMAND_INCLUDE) {
+            include(args.url, args.element)
+            return args.url
+        }
+
     }
 }
 
-inlinescript(body)
+inlinescript(COMMAND_COMPILE, { element: body })
 
 // reactions
 let oldValues = []

@@ -74,15 +74,10 @@
 </head>
 
 <body>
-    <div reacts-to="random">{{
-        random > 0.5 ? 'You won 🎉' : "You lost 😥"
+    <div id="test">{{
+        let productName = "Inline Script"
+        import 'components/header.html'
     }}</div>
-
-    <button onclick="random = Math.random()">rerender</button>
-
-    <script>
-        let random = Math.random()        
-    </script>
 </body>
 
 </html>

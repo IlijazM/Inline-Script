@@ -1,5 +1,5 @@
 <header class="wrapper">
-    <div class="productName">{productName}</div>
+    <div class="productName">{{ productName }}</div>
 </header>
 
 <style>
@@ -11,76 +11,5 @@
 
         background: #111;
         color: white;
-    }
-
-    .productName {}
-</style>
-
-<nav class="wrapper">
-    <div class="left" reacts-to="currentPage">{{
-        navigation.map((nav) => {
-            return (<div>{
-                nav == currentPage ? (<p class="current">{nav}</p>) : (<p onclick="currentPage={nav}">{nav}</p>)
-            }</div>)
-        })
-
-    }}</div>
-
-    <div class="right">
-        <div class="button">LEARN</div>
-        <div class="button">EMBED</div>
-    </div>
-</nav>
-
-<style>
-    nav {
-        display: flex;
-        width: 100%;
-        height: 50px;
-
-        background: white;
-        color: black;
-
-        border-bottom: 1px solid #ccc;
-    }
-
-    .left {
-        display: flex;
-        align-items: center;
-
-        height: 100%;
-    }
-
-    .left>div {
-        height: 100%;
-    }
-
-    .right {
-        display: flex;
-        align-items: center;
-
-        margin-left: auto;
-    }
-
-    nav p {
-        display: flex;
-        align-items: center;
-
-        height: 100%;
-
-        padding: 0 20px;
-        padding-bottom: 2px;
-
-        cursor: pointer;
-
-        transition: background 200ms linear;
-    }
-
-    nav p:hover {
-        background: #eee;
-    }
-
-    nav .current {
-        color: red;
     }
 </style>
