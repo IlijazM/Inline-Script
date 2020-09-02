@@ -173,10 +173,22 @@ function inlinescript(command, args) {
                     // TODO: convert eval result into string
                     if (eval_result instanceof Array) eval_result = eval_result.join("")
 
-                    element.innerHTML = eval_result
+                    if (element.tagName !== "BUTTON") element.innerHTML = eval_result
                 }
 
-                element.render()
+                if (element.tagName == "BUTTON") {
+                    let value = "SUBMIT"
+
+                    try {
+                        value = element.attributes.getNamedItem("value").value
+                    } catch { }
+
+                    element.innerHTML = value
+
+                    element.onclick = element.render
+                } else {
+                    element.render()
+                }
             }
 
         } catch (err) {
@@ -241,11 +253,11 @@ setInterval(() => {
 
         if (oldValues[varName] !== varValue) {
             oldValues[varName] = varValue;
-            for (let i in reactiveElement) {
+            for (let i = 0; i < reactiveElement.length; i++) {
                 try {
                     $q("." + inlineScriptUidPrefix + reactiveElement[i]).render()
                 } catch {
-                    console_log("removed element")
+                    console_group_("removed element", () => { console_log("." + inlineScriptUidPrefix + reactiveElement[i]) })
                     reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
                 }
             }

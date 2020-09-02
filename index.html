@@ -76,11 +76,25 @@
 </head>
 
 <body>
-    <div id="test">{{
-        import "page1.html"
-    }}</div>
+    <script>
+        let num = 0
+    </script>
 
-    <button onclick="test.render()">Reload</button>
+    <h1 id="number" reacts-to="num">{{
+        num
+    }}</h1>
+
+    <button value="Increment">{{
+        num++
+    }}</button>
+
+    <h1 id="random">{{
+        Math.random() > 0.5 ? '🎉🎉🎉'  : '😥😥😥'
+    }}</h1>
+
+    <button value="Randomize">{{
+        random.render()
+    }}</button>
 </body>
 
 </html>
