@@ -17,7 +17,8 @@ const console_group = console.group
 const console_groupEnd = console.groupEnd
 const console_group_ = (g, f) => { console_group(g); f(); console_groupEnd(g) }
 
-const importRegex = /import\s\s*(["'`])(?:(?=(\\?))\2.)*?\1/gm
+const importRegex = /import\s*\(/gm
+const importRegexAlt = /import\s\s*(["'`])(?:(?=(\\?))\2.)*?\1/gm
 const stringRegex = /(["'`])(?:(?=(\\?))\2.)*?\1/gm
 
 const htmlStartRegex = /\(\s*</m
@@ -50,6 +51,8 @@ function addReactionListener(varName) {
 const COMMAND_COMPILE = 0
 const COMMAND_INCLUDE = 1
 
+function importBracketsHelper(element, url) { inlinescript(COMMAND_INCLUDE, { element: element, url: url }) }
+
 function inlinescript(command, args) {
     function include(url, element) {
         const xmlHttp = new XMLHttpRequest()
@@ -62,27 +65,53 @@ function inlinescript(command, args) {
     }
 
     function compileImportExpression(html) {
-        const regex = importRegex
-        let m
-        let replaceList = []
+        // import 1
+        {
+            const regex = importRegex
+            let m
+            let replaceList = []
 
-        while ((m = regex.exec(html)) !== null) {
-            if (m.index === regex.lastIndex) {
-                regex.lastIndex++
+            while ((m = regex.exec(html)) !== null) {
+                if (m.index === regex.lastIndex) {
+                    regex.lastIndex++
+                }
+
+                m.forEach((match, groupIndex) => {
+                    if (groupIndex === 0) {
+                        if (!replaceList.includes(match)) replaceList.push(match)
+                    }
+                })
             }
 
-            m.forEach((match, groupIndex) => {
-                if (groupIndex === 0) {
-                    if (!replaceList.includes(match)) replaceList.push(match)
-                }
+            replaceList.forEach((replace) => {
+                html = html.split(replace).join(inlinescript + importBracketsHelper + "importBracketsHelper(element,")
             })
         }
 
-        replaceList.forEach((replace) => {
-            const importString = stringRegex.exec(replace)[0]
+        // import 2
+        {
+            const regex = importRegexAlt
+            let m
+            let replaceList = []
 
-            html = html.split(replace).join(inlinescript + "inlinescript(COMMAND_INCLUDE,{url:" + importString + ",element:element})")
-        })
+            while ((m = regex.exec(html)) !== null) {
+                if (m.index === regex.lastIndex) {
+                    regex.lastIndex++
+                }
+
+                m.forEach((match, groupIndex) => {
+                    if (groupIndex === 0) {
+                        if (!replaceList.includes(match)) replaceList.push(match)
+                    }
+                })
+            }
+
+            replaceList.forEach((replace) => {
+                const importString = stringRegex.exec(replace)[0]
+
+                html = html.split(replace).join(inlinescript + "inlinescript(COMMAND_INCLUDE,{url:" + importString + ",element:element})")
+            })
+        }
 
         return html
     }
@@ -110,12 +139,12 @@ function inlinescript(command, args) {
 
     function compileElementsContent(element) {
         try {
+            element.hasInlinescript = false
+
             if (element.inlinescript !== undefined) return
 
             let content = element.innerHTML
             content = reverseSanitation(content)
-
-            element.hasInlinescript = false
 
             element.render = () => {
                 console_group_("Element has no inline script:", () => console_log(element))
@@ -128,7 +157,6 @@ function inlinescript(command, args) {
                 element.inlinescript = content
 
                 element.render = () => {
-                    console.log(element)
                     let eval_result
 
                     try {

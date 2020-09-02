@@ -77,11 +77,10 @@
 
 <body>
     <div id="test">{{
-        (5).map((i) => {
-            i++
-            return `<h${i}>Hello, world</h${i}>`
-        })
+        import "page1.html"
     }}</div>
+
+    <button onclick="test.render()">Reload</button>
 </body>
 
 </html>
