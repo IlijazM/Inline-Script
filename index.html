@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 
-    <script src="scripts/inlinescript.js" defer></script>
     <script src="scripts/scopedstyle.js" defer></script>
+    <script src="scripts/inlinescript.js" defer></script>
     <script src="scripts/util.js"></script>
 
     <link
@@ -76,25 +76,7 @@
 </head>
 
 <body>
-    <script>
-        let num = 0
-    </script>
-
-    <h1 id="number" reacts-to="num">{{
-        num
-    }}</h1>
-
-    <button value="Increment">{{
-        num++
-    }}</button>
-
-    <h1 id="random">{{
-        Math.random() > 0.5 ? '🎉🎉🎉'  : '😥😥😥'
-    }}</h1>
-
-    <button value="Randomize">{{
-        random.render()
-    }}</button>
+    <div import="page3.html"></div>
 </body>
 
 </html>

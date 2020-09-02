@@ -50,6 +50,7 @@ function addReactionListener(varName) {
 
 const COMMAND_COMPILE = 0
 const COMMAND_INCLUDE = 1
+const COMMAND_COMPILE_CHILDS = 2
 
 function importBracketsHelper(element, url) { inlinescript(COMMAND_INCLUDE, { element: element, url: url }) }
 
@@ -58,7 +59,17 @@ function inlinescript(command, args) {
         const xmlHttp = new XMLHttpRequest()
         xmlHttp.onload = function () {
             element.innerHTML = xmlHttp.responseText
-            inlinescript(COMMAND_COMPILE, { element: element })
+
+            const scripts = element.querySelectorAll("script")
+            scripts.forEach((script) => {
+                const scriptElement = document.createElement("script")
+                scriptElement.innerHTML = script.innerHTML
+                body.appendChild(scriptElement)
+            })
+
+            scopeStyles(element)
+
+            inlinescript(COMMAND_COMPILE_CHILDS, { element: element })
         }
         xmlHttp.open("GET", url, true)
         xmlHttp.send(null)
@@ -107,6 +118,7 @@ function inlinescript(command, args) {
             }
 
             replaceList.forEach((replace) => {
+                stringRegex.lastIndex = 0
                 const importString = stringRegex.exec(replace)[0]
 
                 html = html.split(replace).join(inlinescript + "inlinescript(COMMAND_INCLUDE,{url:" + importString + ",element:element})")
@@ -114,6 +126,31 @@ function inlinescript(command, args) {
         }
 
         return html
+    }
+
+    function attributeStringToVariable(str) {
+        try {
+            let type = eval("let _=" + str + ";_")
+            return str
+        } catch (err) {
+            return "'" + str + "'"
+        }
+    }
+
+    function compileElementsImportAttribute(element) {
+        if (element.attributes.getNamedItem("import") == null) return
+        const url = element.attributes.getNamedItem("import").value
+
+        let vars = ""
+        const attributes = Array.from(element.attributes).filter((v) => !["reacts-to", "id", "class", "import"].includes(v.name))
+
+        attributes.forEach((attribute) => {
+            const _var = attributeStringToVariable(attribute.value)
+            vars += attribute.name + "=" + _var + ";"
+            console.log(vars)
+        })
+
+        element.innerHTML = "{" + vars + "import \'" + url + "\'}"
     }
 
     function compileHtmlExpression(html) {
@@ -213,6 +250,7 @@ function inlinescript(command, args) {
             element.uniqueId = uid
             element.classList.add(inlineScriptUidPrefix + uid)
 
+            compileElementsImportAttribute(element)
             compileElementsContent(element)
 
             if (!element.hasInlinescript) {
@@ -233,6 +271,9 @@ function inlinescript(command, args) {
     if (command != undefined) {
         if (command === COMMAND_COMPILE) {
             compileElement(args.element)
+            return args.element
+        } else if (command === COMMAND_COMPILE_CHILDS) {
+            compileChilds(args.element)
             return args.element
         } else if (command === COMMAND_INCLUDE) {
             include(args.url, args.element)
