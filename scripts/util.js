@@ -46,8 +46,11 @@ Element.prototype.addClass = function (className) {
 //#region Number
 Number.prototype.for = function (fun, steps) {
     if (steps === undefined) steps = 1
-    for (let i = 0; i < this; i += steps) {
-        fun(i)
+    if (steps === 0) return
+    if (steps > 0) {
+        for (let i = 0; i < Math.abs(this); i += steps) fun(i)
+    } else {
+        for (let i = 0; i > -Math.abs(this); i += steps) fun(i)
     }
 }
 
