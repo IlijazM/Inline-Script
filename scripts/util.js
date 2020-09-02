@@ -73,6 +73,11 @@ Number.prototype.map = function (fun, steps) {
 //#endregion
 
 //#region Array
+Array.prototype.insert = function (index, item) {
+    this.splice(index, 0, item)
+    return this
+}
+
 Object.defineProperty(Array.prototype, 'first', {
     get: function () { return this[0] },
 })
@@ -91,6 +96,19 @@ Array.prototype.do = function (res, fun) {
     })
     return res
 }
+
+Object.defineProperty(Array.prototype, 'asString', {
+    get: function () { return this.join("") },
+    set: function (value) { this.copyFrom(value.asArray) }
+})
+
+Array.prototype.copyFrom = function (source) {
+    for (var i = 0; i < source.length; i++) {
+        this[i] = source[i]
+    }
+    this.length = source.length
+    return this
+}
 //#endregion
 
 //#region String
@@ -100,5 +118,11 @@ String.prototype.toElement = function () {
     return el.firstChild
 }
 
-String.prototype.test = function () { return "Hello, world!" }
+String.prototype.toArray = function () {
+    return this.split("")
+}
+
+Object.defineProperty(String.prototype, 'asArray', {
+    get: function () { return this.split("") },
+})
 //#endregion
