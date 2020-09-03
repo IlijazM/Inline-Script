@@ -19,7 +19,7 @@ function scope(scope, css) {
     }
 
     replaceList.forEach((replace) => {
-        css = css.replace(new RegExp(replace, "g"), scope + " " + replace)
+        css = css.split(replace).join(scope + " " + replace)
     })
 
     return css

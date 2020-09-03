@@ -2,3 +2,12 @@
     Math.random()
 }}</h2>
 <button id="btn" value="Increment">{{ $q("#test").render() }}</button>
+<style scoped>
+    h2::before {
+        content: "Num: "
+    }
+
+    *::after {
+        content: "!"
+    }
+</style>
