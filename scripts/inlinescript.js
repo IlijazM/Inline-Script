@@ -27,6 +27,8 @@ const htmlEndRegex = />\s*\)/gm
 const htmlStartScript = "eval(`" + inlinescript + "inlinescript(COMMAND_COMPILE,{element:$e(\\`<"
 const htmlEndScript = ">\\`)}).outerHTML`)"
 
+const preScript = "$e=function(s){return $q(\".\" + inlineScriptUidPrefix + ##)}"
+
 function reverseSanitation(html) {
     const replaceList = {
         '&gt;': '>',
@@ -50,6 +52,8 @@ const COMMAND_COMPILE_CHILDS = 2
 function importBracketsHelper(element, url) { inlinescript(COMMAND_INCLUDE, { element: element, url: url }) }
 
 function inlinescript(command, args) {
+    let parentUid = 0
+
     function include(url, element) {
         const xmlHttp = new XMLHttpRequest()
         xmlHttp.onload = function () {
@@ -190,7 +194,13 @@ function inlinescript(command, args) {
                 element.render = function () {
                     let eval_result
 
+                    const preScript_ = preScript.replace(/##/, element.uniqueId.toString())
                     try {
+                        const $q = function (s) { return document.querySelector("." + inlineScriptUidPrefix + parentUid + " " + s) }
+                        const $qa = function (s) { return document.querySelectorAll("." + inlineScriptUidPrefix + parentUid + " " + s) }
+                        document.getElementById = function (s) { return $q("." + inlineScriptUidPrefix + parentUid + " #" + s) }
+                        document.getElementsByClassName = function (s) { return $qa("." + inlineScriptUidPrefix + parentUid + " ." + s) }
+
                         eval_result = eval(element.inlinescript)
                     } catch (err) {
                         console_group_("An error occured while evaluating the script from element:", () => {
@@ -293,6 +303,7 @@ function inlinescript(command, args) {
             compileElement(args.element)
             return args.element
         } else if (command === COMMAND_COMPILE_CHILDS) {
+            parentUid = args.element.uniqueId
             compileChilds(args.element)
             return args.element
         } else if (command === COMMAND_INCLUDE) {

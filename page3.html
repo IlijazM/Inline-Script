@@ -1,2 +1,4 @@
-<h2 id="test" reacts-to="num">{num}</h2>
-<button id="btn" value="Increment">{{ num++; }}</button>
+<h2 id="test">{{
+    Math.random()
+}}</h2>
+<button id="btn" value="Increment">{{ $q("#test").render() }}</button>
