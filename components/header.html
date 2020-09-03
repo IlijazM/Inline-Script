@@ -24,11 +24,7 @@
 
 <nav class="wrapper">{{
     navigation.map(nav => {
-        if (nav.url === document.location.pathname) {
-            return (<a class="current">{nav.name}</a>)
-        } else {
-            return (<a href="{{nav.url}}">{nav.name}</a>)
-    }
+        return (*<a href={{nav.url}}>{nav.name}</a>)
     })
     }}</nav>
 

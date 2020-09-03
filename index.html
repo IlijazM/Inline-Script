@@ -76,13 +76,26 @@
 </head>
 
 <body>
-
     <div include="components/header.html"></div>
 
     <div>{{
         let abc = "ABC";
         (<div include="components/hero.html" test="Hello, world!"></div>)
     }}</div>
+
+    <div id="outer">{{
+        let a = Math.random() * 100
+        (<h1 id="inner">{a + Math.random()}</h1>)
+    }}</div>
+
+    <button value="outer">{{ query("#outer").render() }}</button>
+    <button value="inner">{{ query("#inner").render() }}</button>
+
+    <nav>{{
+        "abcdefg".asArray.map((nav) => {
+            return (*<h1>{nav}</h1>)
+        })
+    }}</nav>
 
     <script src="scripts/app.js"></script>
     <script>

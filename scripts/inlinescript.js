@@ -28,8 +28,15 @@ const htmlEndRegex = />\s*\)/gm
 
 const doubleBracketsRegex = /\{\{(.*?)\}\}/gm
 
-const htmlStartScript = "eval(`" + inlinescript + "inlinescript(COMMAND_COMPILE,{element:$e(\\`"
-const htmlEndScript = "\\`)}).outerHTML`)"
+// const htmlStartScript = "eval(`" + inlinescript + "inlinescript(COMMAND_COMPILE,{element:$e(\\`<"
+// const htmlEndScript = ">\\`)}).outerHTML`)"
+
+// const htmlStartScript = "this.innerHTML=`"
+// const htmlEndScript = "`;eval(`" + inlinescript + "setTimeout(()=>{inlinescript(COMMAND_COMPILE_CHILDS,{element:this}).innerHTML})`);this.innerHTML"
+
+const htmlStartScript = "eval(`" + "const __timeout=true;this.innerHTML = \\`"
+const htmlStartScriptAlt = "eval(`" + "const __timeout=false;this.innerHTML = \\`"
+const htmlEndScript = "\\`;" + inlinescript + "if(__timeout){setTimeout(()=>{inlinescript(COMMAND_COMPILE_CHILDS,{element:this})})}else{inlinescript(COMMAND_COMPILE_CHILDS,{element:this})}this.innerHTML`)"
 
 function reverseSanitation(html) {
     const replaceList = {
@@ -58,21 +65,27 @@ function inlinescript(command, args) {
 
     function include(url, element, callback) {
         const xmlHttp = new XMLHttpRequest()
-        xmlHttp.open("GET", url, false)
+        xmlHttp.onload = function () {
+            if (callback === undefined) {
+
+                element.innerHTML = xmlHttp.responseText
+            } else {
+                callback(element, xmlHttp.responseText)
+            }
+
+            const scripts = element.querySelectorAll("script")
+            scripts.forEach((script) => {
+                const scriptElement = document.createElement("script")
+                scriptElement.innerHTML = script.innerHTML
+                body.appendChild(scriptElement)
+            })
+
+            scopeStyles(element)
+
+            inlinescript(COMMAND_COMPILE_CHILDS, { element: element })
+        }
+        xmlHttp.open("GET", url, true)
         xmlHttp.send(null)
-
-        element.innerHTML = xmlHttp.responseText
-
-        const scripts = element.querySelectorAll("script")
-        scripts.forEach((script) => {
-            const scriptElement = document.createElement("script")
-            scriptElement.innerHTML = script.innerHTML
-            body.appendChild(scriptElement)
-        })
-
-        scopeStyles(element)
-
-        inlinescript(COMMAND_COMPILE_CHILDS, { element: element })
     }
 
     function attributeStringToVariable(str) {
@@ -113,12 +126,21 @@ function inlinescript(command, args) {
         for (let i = 0; i < html.length; i++) {
             const c = html.substr(i, 1)
             const cc = html.substr(i, 2)
+            const ccc = html.substr(i, 3)
 
             if (cc === "(<") {
                 opened++
 
                 if (opened === 1) {
                     newHTML += htmlStartScript
+                    continue
+                }
+            } else if (ccc === "(*<") {
+                opened++
+
+                if (opened === 1) {
+                    i++
+                    newHTML += htmlStartScriptAlt
                     continue
                 }
             } else if (cc === ">)") {

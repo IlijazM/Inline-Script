@@ -1,8 +1,4 @@
-<div>
-    <span reacts-to="typewriter.content">{{ typewriter.content }}</span>
-</div>
-
-<script>
+<div>{{
     const TYPEWRITER_STATE_NOTHING = 0
     const TYPEWRITER_STATE_IDLE_START = 1
     const TYPEWRITER_STATE_WRITING = 2
@@ -26,7 +22,7 @@
     }
 
     typewriter.setTarger()
-
+    
     setInterval(() => {
         switch (typewriter.state) {
             case TYPEWRITER_STATE_IDLE_START:
@@ -74,6 +70,12 @@
                 break
         }
     }, 100)
+
+    (<span reacts-to="typewriter.content">{{ typewriter.content }}</span>)
+    }}</div>
+
+<script>
+
 </script>
 
 <style>
