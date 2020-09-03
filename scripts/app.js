@@ -1,6 +1,20 @@
-let productName = "Scripted elements"
+let productName = "Inline Script"
 
 let navigation = [
-    'Overview', 'Showcase', 'Docs'
+    {
+        name: 'Overview',
+        url: "/"
+    },
+    {
+        name: 'Showcase',
+        url: "/showcase.html"
+    },
+    {
+        name: 'Docs',
+        url: "/docs.html"
+    },
+    {
+        name: 'Donate',
+        url: "/donate.html"
+    },
 ]
-

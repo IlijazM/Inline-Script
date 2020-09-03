@@ -1,8 +1,8 @@
 <header class="wrapper">
-    <div class="productName">{{ productName }}</div>
+    <a href="/" class="productName">{{ productName }}</a>
 </header>
 
-<style>
+<style scoped>
     header {
         display: flex;
         align-items: center;
@@ -11,5 +11,49 @@
 
         background: #111;
         color: white;
+    }
+
+    header a {
+        padding: 20px;
+        cursor: pointer;
+
+        text-decoration: none;
+        color: white;
+    }
+</style>
+
+<nav class="wrapper">{{
+    navigation.map(nav => {
+        if (nav.url === document.location.pathname) {
+            return (<a class="current">{nav.name}</a>)
+        } else {
+            return (<a href="{{nav.url}}">{nav.name}</a>)
+    }
+    })
+    }}</nav>
+
+<style scoped>
+    .current {
+        color: reD;
+    }
+
+    nav {
+        display: flex;
+
+        border-bottom: 1px #ccc solid;
+    }
+
+    nav a {
+        padding: 20px;
+        cursor: pointer;
+
+        text-decoration: none;
+        color: black;
+
+        transition: background 100ms linear;
+    }
+
+    nav a:hover {
+        background: #eee;
     }
 </style>

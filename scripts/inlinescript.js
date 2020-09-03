@@ -2,11 +2,13 @@ const $d = document
 const body = $d.body
 const head = $d.head
 const $q = (v) => $d.querySelector(v)
+const $q_ = (v) => $d.querySelector("." + inlineScriptUidPrefix + v)
 const $qa = (v) => $d.querySelectorAll(v)
 const append = (str) => body.innerHTML += str
 
 function $e(htmlString) {
     let div = document.createElement('div');
+    div.style.display = "none"
     div.innerHTML = htmlString.trim();
     return div.firstChild;
 }
@@ -17,7 +19,7 @@ const console_group = console.group
 const console_groupEnd = console.groupEnd
 const console_group_ = (g, f) => { console_group(g); f(); console_groupEnd(g) }
 
-const importRegex = /import\s*\(/gm
+const importRegex = /include\s*\(/gm
 const importRegexAlt = /import\s\s*(["'`])(?:(?=(\\?))\2.)*?\1/gm
 const stringRegex = /(["'`])(?:(?=(\\?))\2.)*?\1/gm
 
@@ -26,10 +28,8 @@ const htmlEndRegex = />\s*\)/gm
 
 const doubleBracketsRegex = /\{\{(.*?)\}\}/gm
 
-const htmlStartScript = "eval(`" + inlinescript + "inlinescript(COMMAND_COMPILE,{element:$e(\\`<"
-const htmlEndScript = ">\\`)}).outerHTML`)"
-
-const preScript = "$e=function(s){return $q(\".\" + inlineScriptUidPrefix + ##)}"
+const htmlStartScript = "eval(`" + inlinescript + "inlinescript(COMMAND_COMPILE,{element:$e(\\`"
+const htmlEndScript = "\\`)}).outerHTML`)"
 
 function reverseSanitation(html) {
     const replaceList = {
@@ -51,82 +51,28 @@ const COMMAND_COMPILE = 0
 const COMMAND_INCLUDE = 1
 const COMMAND_COMPILE_CHILDS = 2
 
-function importBracketsHelper(element, url) { inlinescript(COMMAND_INCLUDE, { element: element, url: url }) }
+const badQuote = "`"
 
 function inlinescript(command, args) {
     let parentUid = 0
 
-    function include(url, element) {
+    function include(url, element, callback) {
         const xmlHttp = new XMLHttpRequest()
-        xmlHttp.onload = function () {
-            element.innerHTML = xmlHttp.responseText
-
-            const scripts = element.querySelectorAll("script")
-            scripts.forEach((script) => {
-                const scriptElement = document.createElement("script")
-                scriptElement.innerHTML = script.innerHTML
-                body.appendChild(scriptElement)
-            })
-
-            scopeStyles(element)
-
-            inlinescript(COMMAND_COMPILE_CHILDS, { element: element })
-        }
-        xmlHttp.open("GET", url, true)
+        xmlHttp.open("GET", url, false)
         xmlHttp.send(null)
-    }
 
-    function compileImportExpression(html) {
-        // import 1
-        {
-            const regex = importRegex
-            let m
-            let replaceList = []
+        element.innerHTML = xmlHttp.responseText
 
-            while ((m = regex.exec(html)) !== null) {
-                if (m.index === regex.lastIndex) {
-                    regex.lastIndex++
-                }
+        const scripts = element.querySelectorAll("script")
+        scripts.forEach((script) => {
+            const scriptElement = document.createElement("script")
+            scriptElement.innerHTML = script.innerHTML
+            body.appendChild(scriptElement)
+        })
 
-                m.forEach((match, groupIndex) => {
-                    if (groupIndex === 0) {
-                        if (!replaceList.includes(match)) replaceList.push(match)
-                    }
-                })
-            }
+        scopeStyles(element)
 
-            replaceList.forEach((replace) => {
-                html = html.split(replace).join(inlinescript + importBracketsHelper + "importBracketsHelper(element,")
-            })
-        }
-
-        // import 2
-        {
-            const regex = importRegexAlt
-            let m
-            let replaceList = []
-
-            while ((m = regex.exec(html)) !== null) {
-                if (m.index === regex.lastIndex) {
-                    regex.lastIndex++
-                }
-
-                m.forEach((match, groupIndex) => {
-                    if (groupIndex === 0) {
-                        if (!replaceList.includes(match)) replaceList.push(match)
-                    }
-                })
-            }
-
-            replaceList.forEach((replace) => {
-                stringRegex.lastIndex = 0
-                const importString = stringRegex.exec(replace)[0]
-
-                html = html.split(replace).join(inlinescript + "inlinescript(COMMAND_INCLUDE,{url:" + importString + ",element:element})")
-            })
-        }
-
-        return html
+        inlinescript(COMMAND_COMPILE_CHILDS, { element: element })
     }
 
     function attributeStringToVariable(str) {
@@ -139,27 +85,57 @@ function inlinescript(command, args) {
     }
 
     function compileElementsImportAttribute(element) {
-        if (element.attributes.getNamedItem("import") == null) return
-        const url = element.attributes.getNamedItem("import").value
+        if (element.attributes.getNamedItem("include") == null) return
+        const url = element.attributes.getNamedItem("include").value
 
         let vars = ""
-        const attributes = Array.from(element.attributes).filter((v) => !["reacts-to", "id", "class", "import"].includes(v.name))
+        const attributes = Array.from(element.attributes).filter((v) => !["reacts-to", "id", "class", "include"].includes(v.name))
 
         attributes.forEach((attribute) => {
             const _var = attributeStringToVariable(attribute.value)
             vars += "let " + attribute.name + "=" + _var + ";"
         })
 
-        element.innerHTML = "{" + vars + "import \'" + url + "\'}"
+        include(url, element, (element, res) => {
+            element.innerHTML = "<div>{" + vars + "(<div>" + res + "</div>)}</div>"
+        })
+
     }
 
     function compileHtmlExpression(html) {
-        html = html.replace(htmlStartRegex, htmlStartScript)
+        if (html.includes(badQuote)) {
+            console.log("html: " + html)
+            console.error("An inline script may not contain a '" + badQuote + "' symbol.")
+        }
 
-        const lastIndex = html.lastIndexOf(">)")
-        if (lastIndex !== -1) html = html.slice(0, lastIndex) + htmlEndScript + html.slice(lastIndex + 2)
+        let opened = 0
+        let newHTML = ""
+        for (let i = 0; i < html.length; i++) {
+            const c = html.substr(i, 1)
+            const cc = html.substr(i, 2)
 
-        return html
+            if (cc === "(<") {
+                opened++
+
+                if (opened === 1) {
+                    newHTML += htmlStartScript
+                    continue
+                }
+            } else if (cc === ">)") {
+                opened--
+
+                if (opened === 0) {
+                    newHTML += ">"
+                    newHTML += htmlEndScript
+                    i++
+                    continue
+                }
+            }
+
+            newHTML += c
+        }
+
+        return newHTML
     }
 
     function compileReactions(element) {
@@ -191,7 +167,6 @@ function inlinescript(command, args) {
             if (content.trim().startsWith("{")) {
                 element.hasInlinescript = true
                 content = compileHtmlExpression(content)
-                content = compileImportExpression(content)
                 element.inlinescript = content
 
                 element.render = function () {
@@ -206,7 +181,6 @@ function inlinescript(command, args) {
 
                     let eval_result
 
-                    const preScript_ = preScript.replace(/##/, element.uniqueId.toString())
                     try {
                         const query = function (s) { return document.querySelector("." + inlineScriptUidPrefix + parentUid + " " + s) }
                         const queryAll = function (s) { return document.querySelectorAll("." + inlineScriptUidPrefix + parentUid + " " + s) }
@@ -294,7 +268,7 @@ function inlinescript(command, args) {
 
                     try {
                         res = eval(replace)
-                        res = JSON.stringify(res)
+                        if (typeof res !== "string") res = JSON.stringify(res)
                     } catch {
                         res = "undefined"
                     }
@@ -355,8 +329,8 @@ function inlinescript(command, args) {
                 oldValues[varName] = varValue;
                 for (let i = 0; i < reactiveElement.length; i++) {
                     try {
-                        $q("." + inlineScriptUidPrefix + reactiveElement[i]).render()
-                    } catch {
+                        document.querySelector("." + inlineScriptUidPrefix + reactiveElement[i]).render()
+                    } catch (err) {
                         console_group_("removed element", () => { console_log("." + inlineScriptUidPrefix + reactiveElement[i]) })
                         reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
                     }
@@ -373,12 +347,12 @@ function inlinescript(command, args) {
             parentUid = args.element.uniqueId
             compileChilds(args.element)
             return args.element
-        } else if (command === COMMAND_INCLUDE) {
-            include(args.url, args.element)
-            return args.url
         }
-
     }
+
+    /*
+     * END
+     */
 }
 
 inlinescript(COMMAND_COMPILE, { element: body })
