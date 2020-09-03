@@ -1,7 +1,6 @@
 const clog = console.log
 const cerr = console.error
 
-
 //#region HTMLElement
 Object.defineProperty(Element.prototype, 'html', {
     get: function () { return this.innerHTML },

@@ -24,6 +24,8 @@ const stringRegex = /(["'`])(?:(?=(\\?))\2.)*?\1/gm
 const htmlStartRegex = /\(\s*</m
 const htmlEndRegex = />\s*\)/gm
 
+const doubleBracketsRegex = /\{\{(.*?)\}\}/gm
+
 const htmlStartScript = "eval(`" + inlinescript + "inlinescript(COMMAND_COMPILE,{element:$e(\\`<"
 const htmlEndScript = ">\\`)}).outerHTML`)"
 
@@ -181,8 +183,9 @@ function inlinescript(command, args) {
             let content = element.innerHTML
             content = reverseSanitation(content)
 
-            element.render = () => {
-                console_group_("Element has no inline script:", () => console_log(element))
+            element.render = function () {
+                this.compileAttributes()
+                // console_group_("Element has no inline script:", () => console_log(element))
             }
 
             if (content.trim().startsWith("{")) {
@@ -192,6 +195,15 @@ function inlinescript(command, args) {
                 element.inlinescript = content
 
                 element.render = function () {
+                    this.compileAttributes()
+                    if (element.tagName == "BUTTON") {
+                        let value = "SUBMIT"
+                        try {
+                            value = element.attributes.getNamedItem("value").value
+                        } catch { }
+                        element.innerHTML = value
+                    }
+
                     let eval_result
 
                     const preScript_ = preScript.replace(/##/, element.uniqueId.toString())
@@ -199,12 +211,12 @@ function inlinescript(command, args) {
                         const query = function (s) { return document.querySelector("." + inlineScriptUidPrefix + parentUid + " " + s) }
                         const queryAll = function (s) { return document.querySelectorAll("." + inlineScriptUidPrefix + parentUid + " " + s) }
 
-                        eval_result = eval(element.inlinescript)
+                        eval_result = eval(this.inlinescript)
                     } catch (err) {
                         console_group_("An error occured while evaluating the script from element:", () => {
-                            console_log(element)
+                            console_log(this)
                             console_log("script:")
-                            console_log(element.inlinescript)
+                            console_log(this.inlinescript)
                             console_error(err)
                         })
                     }
@@ -212,7 +224,16 @@ function inlinescript(command, args) {
                     // TODO: convert eval result into string
                     if (eval_result instanceof Array) eval_result = eval_result.join("")
 
-                    if (element.tagName !== "BUTTON") element.innerHTML = eval_result
+                    if (this.tagName !== "BUTTON") {
+                        this.innerHTML = eval_result
+                    } else {
+                        this.compileAttributes()
+                        let value = "SUBMIT"
+                        try {
+                            value = element.attributes.getNamedItem("value").value
+                        } catch { }
+                        element.innerHTML = value
+                    }
                 }
 
                 if (element.tagName == "BUTTON") {
@@ -239,6 +260,53 @@ function inlinescript(command, args) {
         }
     }
 
+    function compileElementsAttributes(element) {
+        element.initialAttributes = []
+        const attributes = Array.from(element.attributes)
+        attributes.forEach((attribute) => {
+            element.initialAttributes[attribute.name] = attribute.value
+        })
+
+        element.compileAttributes = function () {
+            const attributes = Object.entries(element.initialAttributes)
+
+            doubleBracketsRegex.lastIndex = 0
+            attributes.forEach((v) => {
+
+                let replaceList = []
+                let attribute = v[1]
+                let m
+
+                while ((m = doubleBracketsRegex.exec(attribute)) !== null) {
+                    if (m.index === doubleBracketsRegex.lastIndex) {
+                        doubleBracketsRegex.lastIndex++
+                    }
+
+                    m.forEach((match, groupIndex) => {
+                        if (groupIndex === 0) {
+                            if (!replaceList.includes(match)) replaceList.push(match)
+                        }
+                    })
+                }
+
+                replaceList.forEach((replace) => {
+                    let res
+
+                    try {
+                        res = eval(replace)
+                        res = JSON.stringify(res)
+                    } catch {
+                        res = "undefined"
+                    }
+
+                    this.setAttribute(v[0], attribute.split(replace).join(res))
+                })
+            })
+        }
+
+        element.compileAttributes()
+    }
+
     function compileChilds(element) {
         const childs = Array.from(element.children)
 
@@ -253,6 +321,7 @@ function inlinescript(command, args) {
             element.uniqueId = uid
             element.classList.add(inlineScriptUidPrefix + uid)
 
+            compileElementsAttributes(element)
             compileElementsImportAttribute(element)
             compileElementsContent(element)
 
