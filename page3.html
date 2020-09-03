@@ -1,9 +1,2 @@
-<div>{{
-    let num = 0
-
-    (<div>
-        <h1>Hello</h1>
-        <h2 id="test">{num}</h2>
-        <button value="Increment" onclick="num++;console.log(num);test.render()">HEy</button>
-</div>)
-}}</div>
+<h2 id="test">{num}</h2>
+<button id="btn" value="Increment">{{ num++; this.parentElement.querySelector("#test").render() }}</button>

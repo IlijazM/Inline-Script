@@ -146,8 +146,7 @@ function inlinescript(command, args) {
 
         attributes.forEach((attribute) => {
             const _var = attributeStringToVariable(attribute.value)
-            vars += attribute.name + "=" + _var + ";"
-            console.log(vars)
+            vars += "let " + attribute.name + "=" + _var + ";"
         })
 
         element.innerHTML = "{" + vars + "import \'" + url + "\'}"
@@ -193,7 +192,7 @@ function inlinescript(command, args) {
                 content = compileImportExpression(content)
                 element.inlinescript = content
 
-                element.render = () => {
+                element.render = function () {
                     let eval_result
 
                     try {
@@ -222,7 +221,8 @@ function inlinescript(command, args) {
 
                     element.innerHTML = value
 
-                    element.onclick = element.render
+                    const className = "." + inlineScriptUidPrefix + element.uniqueId
+                    $q(className).setAttribute("onclick", "$q('" + className + "').render()")
                 } else {
                     element.render()
                 }
