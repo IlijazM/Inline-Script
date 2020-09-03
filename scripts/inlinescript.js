@@ -196,10 +196,8 @@ function inlinescript(command, args) {
 
                     const preScript_ = preScript.replace(/##/, element.uniqueId.toString())
                     try {
-                        const $q = function (s) { return document.querySelector("." + inlineScriptUidPrefix + parentUid + " " + s) }
-                        const $qa = function (s) { return document.querySelectorAll("." + inlineScriptUidPrefix + parentUid + " " + s) }
-                        document.getElementById = function (s) { return $q("." + inlineScriptUidPrefix + parentUid + " #" + s) }
-                        document.getElementsByClassName = function (s) { return $qa("." + inlineScriptUidPrefix + parentUid + " ." + s) }
+                        const query = function (s) { return document.querySelector("." + inlineScriptUidPrefix + parentUid + " " + s) }
+                        const queryAll = function (s) { return document.querySelectorAll("." + inlineScriptUidPrefix + parentUid + " " + s) }
 
                         eval_result = eval(element.inlinescript)
                     } catch (err) {

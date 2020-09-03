@@ -1,3 +1,7 @@
+const clog = console.log
+const cerr = console.error
+
+
 //#region HTMLElement
 Object.defineProperty(Element.prototype, 'html', {
     get: function () { return this.innerHTML },
@@ -40,10 +44,11 @@ Element.prototype.addClass = function (className) {
     this.classList.add(className)
 }
 
-
+const query = function (selector) { return document.querySelector(selector) }
+const queryAll = function (selector) { return Array.from(document.querySelectorAll(selector)) }
 //#endregion
 
-//#region Number
+//#region for
 Number.prototype.for = function (fun, steps) {
     if (steps === undefined) steps = 1
     if (steps === 0) return
@@ -53,7 +58,9 @@ Number.prototype.for = function (fun, steps) {
         for (let i = 0; i > -Math.abs(this); i += steps) fun(i)
     }
 }
+//#endregion
 
+//#region do
 Number.prototype.do = function (res, fun, steps) {
     if (steps === undefined) steps = 1
     for (let i = 0; i < this; i += steps) {
@@ -62,6 +69,19 @@ Number.prototype.do = function (res, fun, steps) {
     return res
 }
 
+Array.prototype.do = function (res, fun) {
+    this.forEach(v => {
+        res += fun(v)
+    })
+    return res
+}
+
+String.prototype.do = function (res, fun) {
+    return this.split("").do(res, fun)
+}
+//#endregion
+
+//#region map
 Number.prototype.map = function (fun, steps) {
     let res = []
     if (steps === undefined) steps = 1
@@ -86,22 +106,6 @@ Object.defineProperty(Array.prototype, 'last', {
     get: function () { return this[this.length - 1] },
 })
 
-Object.defineProperty(Array.prototype, 'random', {
-    get: function () { return this[Math.floor(Math.random() * this.length)] },
-})
-
-Array.prototype.do = function (res, fun) {
-    this.forEach(v => {
-        res += fun(v)
-    })
-    return res
-}
-
-Object.defineProperty(Array.prototype, 'asString', {
-    get: function () { return this.join("") },
-    set: function (value) { this.copyFrom(value.asArray) }
-})
-
 Array.prototype.copyFrom = function (source) {
     for (var i = 0; i < source.length; i++) {
         this[i] = source[i]
@@ -117,7 +121,9 @@ String.prototype.toElement = function () {
     el.innerHTML = this
     return el.firstChild
 }
+//#endregion
 
+//#region as/to Array/String
 String.prototype.toArray = function () {
     return this.split("")
 }
@@ -125,4 +131,35 @@ String.prototype.toArray = function () {
 Object.defineProperty(String.prototype, 'asArray', {
     get: function () { return this.split("") },
 })
+
+Object.defineProperty(Array.prototype, 'asString', {
+    get: function () { return this.join("") },
+    set: function (value) { this.copyFrom(value.asArray) }
+})
 //#endregion
+
+//#region random
+Object.defineProperty(Number.prototype, 'random', {
+    get: function () { return Math.floor(Math.random() * this) },
+})
+
+Object.defineProperty(Array.prototype, 'random', {
+    get: function () { return this[Math.floor(Math.random() * this.length)] },
+})
+
+Object.defineProperty(String.prototype, 'random', {
+    get: function () { let array = this.split(""); return array[Math.floor(Math.random() * array.length)] },
+})
+
+// Object.defineProperty(Object.prototype, 'random', {
+//     get: function () { return Object.entries(this).random },
+// })
+//#endregion
+
+Number.prototype.increment = function () { return this + 1 }
+
+Object.defineProperty(Array.prototype, 'test.a', {
+    get: function () { return this }
+})
+
+String.prototype.test = function () { clog("test") }
