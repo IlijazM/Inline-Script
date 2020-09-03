@@ -43,11 +43,6 @@ const inlineScriptUidPrefix = "inline-script-uid-"
 let inlineScriptId = 0
 function generateUniqueId() { return inlineScriptId++ }
 
-let reactiveElements = {}
-function addReactionListener(varName) {
-    reactiveElements[varName] = []
-}
-
 const COMMAND_COMPILE = 0
 const COMMAND_INCLUDE = 1
 const COMMAND_COMPILE_CHILDS = 2
@@ -268,6 +263,31 @@ function inlinescript(command, args) {
         return element
     }
 
+    let reactiveElements = {}
+    function addReactionListener(varName) {
+        reactiveElements[varName] = []
+    }
+
+    let oldValues = []
+    setInterval(() => {
+        for (let varName in reactiveElements) {
+            const reactiveElement = reactiveElements[varName]
+            const varValue = eval(varName)
+
+            if (oldValues[varName] !== varValue) {
+                oldValues[varName] = varValue;
+                for (let i = 0; i < reactiveElement.length; i++) {
+                    try {
+                        $q("." + inlineScriptUidPrefix + reactiveElement[i]).render()
+                    } catch {
+                        console_group_("removed element", () => { console_log("." + inlineScriptUidPrefix + reactiveElement[i]) })
+                        reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
+                    }
+                }
+            }
+        }
+    }, 50)
+
     if (command != undefined) {
         if (command === COMMAND_COMPILE) {
             compileElement(args.element)
@@ -284,24 +304,3 @@ function inlinescript(command, args) {
 }
 
 inlinescript(COMMAND_COMPILE, { element: body })
-
-// reactions
-let oldValues = []
-setInterval(() => {
-    for (let varName in reactiveElements) {
-        const reactiveElement = reactiveElements[varName]
-        const varValue = eval(varName)
-
-        if (oldValues[varName] !== varValue) {
-            oldValues[varName] = varValue;
-            for (let i = 0; i < reactiveElement.length; i++) {
-                try {
-                    $q("." + inlineScriptUidPrefix + reactiveElement[i]).render()
-                } catch {
-                    console_group_("removed element", () => { console_log("." + inlineScriptUidPrefix + reactiveElement[i]) })
-                    reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
-                }
-            }
-        }
-    }
-}, 50)
