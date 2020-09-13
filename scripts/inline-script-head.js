@@ -27,24 +27,40 @@ Object.defineProperty(HTMLElement.prototype, 'uid', {
 })
 
 function convertResults(element, result) {
+    element.innerHTML = ""
+
     if (result instanceof HTMLElement) {
         element.append(result)
-        return
+        return element
     }
 
     if (result === undefined) result = ''
-    if (result instanceof Array) result = result.join('')
+    if (result instanceof Array) {
+        const isListHTMLElement = result.every(i => i instanceof HTMLElement)
+
+        if (isListHTMLElement) {
+            result.forEach(child => {
+                element.append(child)
+            })
+            return element
+        }
+
+        result = result.join('')
+        return element
+    }
 
     element.innerHTML = result
+
+    return element
 }
 
 function render(element) {
-    if (element.hasInlineScript) convertResults(element, eval(element.inlineScript))
+    if (element.hasInlineScript) return convertResults(element, eval(element.inlineScript))
 }
 
-function createElement(element) {
+function createElement(html) {
     const parent = document.createElement("div")
-    parent.innerHTML = element
+    parent.innerHTML = html
     return parent.firstChild
 }
 
@@ -52,10 +68,25 @@ function htmlExpression(html) {
     let element = createElement(html)
 
     scan(element, () => { })
-    render(element)
+
+    return render(element)
+}
+
+function reverseSanitation(html) {
+    const replaceList = {
+        '&gt;': '>',
+        '&lt;': '<',
+    }
+    Object.keys(replaceList).forEach((i) => {
+        html = html.split(i).join(replaceList[i])
+    })
+
+    return html
 }
 
 function compileInlineScript(inlineScript) {
+    inlineScript = reverseSanitation(inlineScript)
+
     let inQuotes = ""
     let escapeQuotes = false
     let htmlExpressionDepth = 0
@@ -85,21 +116,28 @@ function compileInlineScript(inlineScript) {
             escapeQuotes = true
         }
 
-        if (inQuotes === "" && htmlExpressionDepth === 0) {
+        if (inQuotes === "") {
             if (c === "(" && find("<").replaceAll(" ", "").replaceAll("\n", "") === "(<") {
-                newInlineScript += render + "\n" + htmlExpression + "\n" + 'htmlExpression(`<'
                 htmlExpressionDepth++
-                i++
-                continue
+
+                if (htmlExpressionDepth === 1) {
+                    newInlineScript += "eval(`" + render + "\n\n" + htmlExpression + "\n\n" + 'htmlExpression(\\`<'
+                    i++
+                    continue
+                }
+
             }
         }
 
-        if (inQuotes === "" && htmlExpressionDepth === 1) {
+        if (inQuotes === "") {
             if (c === ">" && find(")").replaceAll(" ", "").replaceAll("\n", "") === ">)") {
-                newInlineScript += '>`)'
                 htmlExpressionDepth--
-                i++
-                continue
+
+                if (htmlExpressionDepth === 0) {
+                    newInlineScript += '>\\`)`)'
+                    i++
+                    continue
+                }
             }
         }
 
