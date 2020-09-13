@@ -24,18 +24,26 @@
             height: 0px !important;
             opacity: 0 !important;
         }
+
+        .error {
+            font-size: 20px !important;
+            background: red !important;
+            color: yellow !important;
+        }
     </style>
 </head>
 
 <body class="invisible">
     <div id="outer">{{
-        array.map(v => {
-            return (<h1>{v}</h1>)
-        })
+        let a = 100;
+
+        load(this, 'test.html', { navigation: ['Home', 'About', 'Pricing', 'Contact'] })
     }}</div>
 
     <script>
         let array = ["Hello", "world", "And stuff"]
+
+        inlineScript()
     </script>
 </body>
 </html>
