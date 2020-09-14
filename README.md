@@ -7,7 +7,7 @@ Inline-script.js is an easy to use, front-end framework that aims to improve you
 Add this to your head
 
 ```html
-<script src="inline-script.js"></script>
+<script src="https://ilijazm.github.io/Inline-Script/inline-script.js"></script>
 ```
 
 At the end of your body you need to execute:
