@@ -5,12 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital@1&display=swap" rel="stylesheet">
+
     <script src="scripts/inline-script.js"></script>
     <script src="https://ilijazm.github.io/burning-brackets-js/burning-brackets.min.js"></script>
 
     <style>
         body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            min-width: 100vw;
+            min-height: 100vh;
+
             margin: 0;
+
+            font-family: 'DM Mono', monospace;
+
+            background: #333;
+            color: #aaa;
         }
 
         .invisible {
@@ -34,14 +49,10 @@
 
 <body class="invisible">
     <div class="outer">{{
-        let a = 100..random;
-
-        (<div>
-            <h1>Hello, world!</h1>
-            <h2>Bye bye world!</h2>
-            <h3>{ a }</h3>
-        </div>)
+        load(this, "test.html")
     }}</div>
+
+    <h1>Other</h1>
 
     <style>
         .number-1 {
