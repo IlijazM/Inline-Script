@@ -20,12 +20,14 @@
         <div class="wrapper">{ content }</div>
     </define>
 
-    <div load="components/header.html" title="inline-script-js" buttonhref="/install.html">{{
+    <div load="components/header.html"></div>
+
+    <customHeader title="inline-script-js" buttonhref="/install.html">{{
         navigation.map(v => {
             const className = document.location.pathname === v.url || document.location.pathname === v.altUrl ? 'current' : ''
             return (<a class={{className}} href={{v.url}}>{ v.name }</a>)
         })
-    }}</div>
+    }}</customHeader>
 
     <div load="components/hero.html"></div>
 

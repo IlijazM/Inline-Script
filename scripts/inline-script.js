@@ -304,19 +304,49 @@ function updateMacros(element) {
     for (let macro in macros) {
         const value = macros[macro]
 
-        function convert(el) {
-            const html = element.innerHTML
-            el.outerHTML = value
+        function convert(el, value) {
+            const html = el.innerHTML
+
+            function renameHTMLTagName(element, newTagName) {
+                const uniqueClassName = 20..do('_', () => {
+                    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.random
+                })
+
+                element.classList.add(uniqueClassName)
+
+                let { outerHTML, tagName } = element
+
+                outerHTML = '<' + newTagName + outerHTML.substring(1 + tagName.length, outerHTML.length - tagName.length - 1) + newTagName + '>'
+                element.outerHTML = outerHTML
+
+                element = document.query('.' + uniqueClassName)
+                element.classList.remove(uniqueClassName)
+                return element
+            }
+
+            el = renameHTMLTagName(el, 'xyz')
+            el.innerHTML = value
+
+            let args = { html: html }
+
+            Array.from(el.attributes).forEach(v => {
+                if (!['class', 'id', 'style', 'load', 'reacts-to'].includes(v.name))
+                    args[v.name] = attributeStringToVariable(v.value)
+            })
+
+            with (args) {
+                eval(inlineScript + 'inlineScript(el)')
+            }
         }
 
         if (element.tagName === macro.toUpperCase()) {
-            convert(element)
+            convert(element, value)
         }
 
         const elements = Array.from(document.querySelectorAll(macro))
 
         elements.forEach(el => {
-            convert(el)
+            convert(el, value)
         })
     }
 }
