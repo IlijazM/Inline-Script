@@ -308,9 +308,7 @@ function updateMacros(element) {
             const html = el.innerHTML
 
             function renameHTMLTagName(element, newTagName) {
-                const uniqueClassName = 20..do('_', () => {
-                    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.random
-                })
+                const uniqueClassName = '_' + Array(20).fill(0).map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join('')
 
                 element.classList.add(uniqueClassName)
 
@@ -319,7 +317,7 @@ function updateMacros(element) {
                 outerHTML = '<' + newTagName + outerHTML.substring(1 + tagName.length, outerHTML.length - tagName.length - 1) + newTagName + '>'
                 element.outerHTML = outerHTML
 
-                element = document.query('.' + uniqueClassName)
+                element = document.querySelector('.' + uniqueClassName)
                 element.classList.remove(uniqueClassName)
                 return element
             }
