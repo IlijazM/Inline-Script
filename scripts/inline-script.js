@@ -61,6 +61,10 @@ HTMLElement.prototype.render = function () {
     renderElement.call(this, (m) => eval(m))
 }
 
+HTMLElement.prototype.buttonRender = function () {
+    eval(this.inlineScript)
+}
+
 Object.defineProperty(HTMLElement.prototype, 'hasInlineScript', {
     get: function () { return this.inlineScript_ !== undefined }
 })
@@ -73,8 +77,10 @@ Object.defineProperty(HTMLElement.prototype, 'inlineScript', {
             let inlineScript = value
             inlineScript = compileInlineScript(inlineScript)
             this.inlineScript_ = inlineScript
+            this.classList.add(hasInlineScriptClassName)
+
+            if (this.tagName === 'BUTTON') this.setAttribute('onclick', 'this.buttonRender()')
         }
-        this.classList.add(hasInlineScriptClassName)
     }
 })
 
@@ -181,12 +187,21 @@ function renderAttributes(callback) {
             regex.lastIndex += res.toString().length
         }
     })
+
+    // button
+    const valueAttribute = this.attributes.value
+    if (valueAttribute !== undefined && this.hasInlineScript && this.tagName === "BUTTON") {
+        this.innerHTML = valueAttribute.value
+    }
 }
 
 function renderElement(attributeCallback) {
     renderAttributes.call(this, (m) => eval(m))
-    if (this.hasInlineScript) return convertEvalResults(this, eval(this.inlineScript))
-    return this
+
+    if (!this.hasInlineScript) return this
+    if (this.tagName === 'BUTTON') return this
+
+    return convertEvalResults(this, eval(this.inlineScript))
 }
 
 // Scan
