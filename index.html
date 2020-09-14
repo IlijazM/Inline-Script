@@ -12,14 +12,6 @@
 
     <style>
         body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-
-            min-width: 100vw;
-            min-height: 100vh;
-
             margin: 0;
 
             font-family: 'DM Mono', monospace;
@@ -44,30 +36,22 @@
             background: red !important;
             color: yellow !important;
         }
+
+        .wrapper {
+            padding-left: calc((100vw - 800px) / 2);
+            padding-right: calc((100vw - 800px) / 2);
+        }
     </style>
 </head>
 
 <body class="invisible">
 
-    <h1 class="color{{4..random}}">RANDOM COLOR</h1>
-
-    <style>
-        .color0 {
-            color: red;
-        }
-
-        .color1 {
-            color: green;
-        }
-
-        .color2 {
-            color: blue;
-        }
-
-        .color3 {
-            color: yellow;
-        }
-    </style>
+    <div load="header.html" title="Inline-script-js">
+        <a href="/">Home</a>
+        <a href="/About">About</a>
+        <a href="/Pricing">Pricing</a>
+        <a href="/Contact">Contact</a>
+    </div>
 
     <script>
         let array = ["Hello", "world", "And stuff"]

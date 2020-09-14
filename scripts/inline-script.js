@@ -314,6 +314,15 @@ function compileInlineScript(inlineScript) {
     return newInlineScript
 }
 
+function attributeStringToVariable(str) {
+    try {
+        let type = eval("let _=" + str + ";_")
+        return type
+    } catch (err) {
+        return str
+    }
+}
+
 function compileAttributes() {
     const attributes = Array.from(this.attributes)
     let inlineScriptAttributes = []
@@ -323,6 +332,20 @@ function compileAttributes() {
             inlineScriptAttributes.push({ name: v.name, value: v.value })
         }
     })
+
+    let loadAttribute = attributes.find(v => v.name === 'load')
+    if (loadAttribute) {
+        let args = { html: this.innerHTML }
+
+        attributes.forEach(v => {
+            if (!['class', 'id', 'style', 'load', 'reacts-to'].includes(v.name))
+                args[v.name] = attributeStringToVariable(v.value)
+        })
+
+        console.log(args)
+
+        load(this, loadAttribute.value, args)
+    }
 
     this.inlineScriptAttributes = inlineScriptAttributes
 
