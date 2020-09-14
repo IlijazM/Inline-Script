@@ -113,6 +113,13 @@ function load(element, url, args) {
             element.innerHTML = ""
             element.append(child)
             scopeStyles(element)
+
+            const scripts = element.querySelectorAll("script")
+            scripts.forEach((script) => {
+                const scriptElement = document.createElement("script")
+                scriptElement.innerHTML = script.innerHTML
+                document.body.appendChild(scriptElement)
+            })
         }
     }
     xmlHttp.open("GET", url, true)
