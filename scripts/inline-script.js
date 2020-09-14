@@ -287,9 +287,9 @@ function addMacro(tag, value) {
 
 function macro(element) {
     try {
-        const tag = element.attributes.tag
+        const tag = element.attributes[0]
 
-        addMacro(tag.value, element.innerHTML)
+        addMacro(tag.name, element.innerHTML)
     } catch (err) {
         console.error('Something went wrong with define:')
         console.error(err)

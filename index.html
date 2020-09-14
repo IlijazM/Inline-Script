@@ -16,21 +16,12 @@
 </head>
 
 <body class="invisible">
-    <define tag="wrapper">
-        <div class="wrapper">{ content }</div>
+    <define backwards>
+        <h1>{{ html.split('').reverse().join('') }}</h1>
     </define>
 
-    <div load="components/header.html"></div>
-
-    <customHeader title="inline-script-js" buttonhref="/install.html">{{
-        navigation.map(v => {
-            const className = document.location.pathname === v.url || document.location.pathname === v.altUrl ? 'current' : ''
-            return (<a class={{className}} href={{v.url}}>{ v.name }</a>)
-        })
-    }}</customHeader>
-
-    <div load="components/hero.html"></div>
-
-    <x6>Hello, world!</x6>
+    <backwards>
+        Hello, world!
+    </backwards>
 </body>
 </html>
