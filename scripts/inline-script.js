@@ -1,4 +1,4 @@
-//#region scoped css
+//#region Scoped css
 function scope(scope, css) {
     css = css.replace(/\/\*([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*\/+/g, "")
 
@@ -50,22 +50,62 @@ function scopeStyles(element) {
     })
 }
 
-function scopeAllStyles() { scopeStyles(document.querySelector('html')) }
-
-scopeAllStyles()
+function scopeAllStyles() { scopeStyles(document) }
 //#endregion
 
-// Custom properties
+//#region Const vars
+const hasInlineScriptClassName = 'has-inline-script'
+const UIDPrefix = "inline-script-uid-"
+let InlineScriptUID = 0
+//#endregion
 
+//#region Functions
+function getRequest(url, res) {
+    const xmlHttp = new XMLHttpRequest()
+    xmlHttp.onload = res(xmlHttp)
+    xmlHttp.open("GET", url, true)
+    xmlHttp.send(null)
+}
+function load(element, url, args) {
+    const xmlHttp = new XMLHttpRequest()
+    xmlHttp.onload = function () {
+        with (args || {}) {
+            let child
+
+            try {
+                child = eval('eval(eval(inlineScript).toString());inlineScript(this.responseText)')
+            } catch (err) {
+                // ERROR
+                child = document.createElement('div')
+                handleExceptionResult(child, err)
+            }
+
+            element.innerHTML = ""
+            element.append(child)
+
+            const scripts = element.querySelectorAll("script")
+            scripts.forEach((script) => {
+                const scriptElement = document.createElement("script")
+                scriptElement.innerHTML = script.innerHTML
+                document.body.appendChild(scriptElement)
+            })
+        }
+    }
+    xmlHttp.open("GET", url, true)
+    xmlHttp.send(null)
+
+    return ''
+}
+//#endregion
+
+//#region Custom properties
 HTMLElement.prototype.render = function () {
-    renderElement.call(this, (m) => eval(m))
 }
 
 Object.defineProperty(HTMLElement.prototype, 'hasInlineScript', {
     get: function () { return this.inlineScript_ !== undefined }
 })
 
-const hasInlineScriptClassName = 'has-inline-script'
 Object.defineProperty(HTMLElement.prototype, 'inlineScript', {
     get: function () { return this.inlineScript_ !== undefined ? this.inlineScript_ : '' },
     set: function (value) {
@@ -86,191 +126,22 @@ Object.defineProperty(HTMLElement.prototype, 'inlineScriptAttributes', {
         this.inlineScriptAttributes_ = value
     }
 })
+//#endregion
 
-// Custom functions
-
-function load(element, url, args) {
-    const xmlHttp = new XMLHttpRequest()
-    xmlHttp.onload = function () {
-        with (args || {}) {
-            let child
-
-            try {
-                child = eval(htmlExpression + 'htmlExpression(this.responseText)')
-            } catch (err) {
-                // ERROR
-                child = createElement('<div class="error">' + err + '</div>')
-            }
-
-            element.innerHTML = ""
-            element.append(child)
-            scopeStyles(element)
-
-            const scripts = element.querySelectorAll("script")
-            scripts.forEach((script) => {
-                const scriptElement = document.createElement("script")
-                scriptElement.innerHTML = script.innerHTML
-                document.body.appendChild(scriptElement)
-            })
-        }
-    }
-    xmlHttp.open("GET", url, true)
-    xmlHttp.send(null)
-
-    return ''
-}
-
-// Inline script
-
-function convertEvalResults(element, result) {
-    element.innerHTML = ''
-
-    if (result === undefined) return element
-
-    if (result instanceof HTMLElement) {
-        element.append(result)
-        scopeStyles(element)
-        return element
-    }
-
-    if (result instanceof Array) {
-        const isListHTMLElement = result.every(i => i instanceof HTMLElement)
-
-        if (isListHTMLElement) {
-            result.forEach(child => element.append(child))
-            scopeStyles(element)
-            return element
-        }
-
-        result = result.join('')
-        element.innerHTML = result
-        return element
-    }
-
-    element.innerHTML = result
-
-    return element
-}
-
-function renderAttributes(callback) {
-    const attributes = this.inlineScriptAttributes
-    const regex = /\{\{(.*?)\}\}/gm
-
-    attributes.forEach(attribute => {
-        while ((m = regex.exec(attribute.value)) !== null) {
-            if (m.index === regex.lastIndex) {
-                regex.lastIndex++
-            }
-
-            const match = m[0]
-            const index = m.index
-
-            let res = callback(match)
-            if (res === undefined) res = ''
-
-            let { value } = attribute
-            value = value.substring(0, index) + res.toString() + value.substr(index + match.length)
-            this.attributes[attribute.name].value = value
-            regex.lastIndex += res.toString().length
-        }
-    })
-
-    // button
-    const valueAttribute = this.attributes.value
-    if (valueAttribute !== undefined && this.hasInlineScript && this.tagName === "BUTTON") {
-        this.innerHTML = valueAttribute.value
-    }
-}
-
-function renderElement(attributeCallback) {
-    const query = (selector) => { return this.querySelector(selector) }
-    const queryAll = (selector) => { return this.querySelector(selector) }
-
-    renderAttributes.call(this, (m) => eval(m))
-
-    if (!this.hasInlineScript) return this
-    if (this.tagName === 'BUTTON') return this
-
-    return convertEvalResults(this, eval(this.inlineScript))
-}
-
-// Scan
-
-function scan(element, renderElement, renderAttributes) {
-    if (hasInlineScript(element)) {
-        setUniqueClassName(element)
-        element.inlineScript = element.innerHTML
-        if (renderElement !== undefined) renderElement(element)
-        compileAttributes.call(element)
-        if (renderAttributes !== undefined) renderAttributes(element)
-    } else {
-        compileAttributes.call(element)
-        if (renderAttributes !== undefined) renderAttributes(element)
-        scanChildren(element, (child) => {
-            scan(child, renderElement, renderAttributes)
-        })
-    }
-}
-
-function scanChildren(element, callback) {
-    Array.from(element.children).forEach(v => callback(v))
-}
-
-let InlineScriptUID = 0
-const UIDPrefix = "inline-script-uid-"
-function newUID() { return InlineScriptUID++ }
-
-function setUniqueClassName(element) {
-    if (element.uid !== undefined) return
-    element.uid = newUID()
-    element.classList.add(UIDPrefix + element.uid)
-}
-
-function hasInlineScript(element) {
-    if (element.tagName === "SCRIPT" || element.tagNAME === "STYLE") return false
-    return element.innerHTML.trim().startsWith("{")
-}
-
-function createElement(html) {
-    const parent = document.createElement("div")
-    parent.innerHTML = html
-    return parent.firstChild
-}
-
-function htmlExpression(html) {
-    let element = createElement(html)
-
-    scan(element, (e) => {
-        e.render = function () {
-            eval(renderElement + 'renderElement.call(this)')
-        }
-        e.render()
-        if (e.tagName === 'BUTTON') {
-            e.onclick = function () {
-                eval(this.inlineScript)
-            }
-        }
-
-    }, (e) => {
-        renderAttributes.call(e, (m) => eval(m))
-    })
-
-    return element
-}
-
-function reverseSanitation(html) {
-    const replaceList = {
-        '&gt;': '>',
-        '&lt;': '<',
-    }
-    Object.keys(replaceList).forEach((i) => {
-        html = html.replaceAll(i, replaceList[i])
-    })
-
-    return html
-}
-
+//#region Compiler
 function compileInlineScript(inlineScript) {
+    function reverseSanitation(html) {
+        const replaceList = {
+            '&gt;': '>',
+            '&lt;': '<',
+        }
+        Object.keys(replaceList).forEach((i) => {
+            html = html.replaceAll(i, replaceList[i])
+        })
+
+        return html
+    }
+
     inlineScript = reverseSanitation(inlineScript)
 
     let inQuotes = ""
@@ -307,7 +178,7 @@ function compileInlineScript(inlineScript) {
                 htmlExpressionDepth++
 
                 if (htmlExpressionDepth === 1) {
-                    newInlineScript += "eval(`eval(eval(htmlExpression).toString());" + 'htmlExpression(\\`<'
+                    newInlineScript += 'eval(`eval(eval(inlineScript).toString());' + 'inlineScript(\\`<'
                     i++
                     continue
                 }
@@ -332,7 +203,71 @@ function compileInlineScript(inlineScript) {
 
     return newInlineScript
 }
+//#endregion
 
+//#region Util functions
+function setUniqueClassName(element) {
+    if (element.uid !== undefined) return
+    element.uid = newUID()
+    element.classList.add(UIDPrefix + element.uid)
+}
+
+function hasInlineScript(element) {
+    if (element.tagName === "SCRIPT" || element.tagNAME === "STYLE") return false
+    return element.innerHTML.trim().startsWith("{")
+}
+
+function isDefineExpression(element) {
+    return element.tagName === "DEFINE"
+}
+
+function createElement(html) {
+    const parent = document.createElement("div")
+    parent.innerHTML = html
+    return parent.firstChild
+}
+
+function newUID() { return InlineScriptUID++ }
+//#endregion
+
+//#region Handlers
+function handleExceptionResult(element, err) {
+    element.style.background = 'red'
+    element.style.color = 'yellow'
+    element.style.fontSize = '20px'
+    element.innerHTML = err
+}
+
+function handleRenderResults(element, result) {
+    element.innerHTML = ''
+
+    if (result === undefined) return
+
+    if (result instanceof HTMLElement) {
+        element.append(result)
+        return
+    }
+
+    if (result instanceof Array) {
+        const isListHTMLElement = result.every(i => i instanceof HTMLElement)
+
+        if (isListHTMLElement) {
+            result.forEach(child => element.append(child))
+            return
+        }
+
+        result = result.join('')
+        element.innerHTML = result
+        return
+    }
+
+    element.innerHTML = result
+
+    return
+}
+//#endregion
+
+//#region Type conversions
 function attributeStringToVariable(str) {
     try {
         let type = eval("let _=" + str + ";_")
@@ -341,91 +276,233 @@ function attributeStringToVariable(str) {
         return str
     }
 }
+//#endregion
 
-function compileAttributes() {
-    const attributes = Array.from(this.attributes)
-    let inlineScriptAttributes = []
+//#region Macros
+let macros = {}
 
-    attributes.forEach(v => {
-        if (/{\s*{/gm.test(v.value)) {
-            inlineScriptAttributes.push({ name: v.name, value: v.value })
+function addMacro(tag, value) {
+    macros[tag] = value
+}
+
+function macro(element) {
+    try {
+        const src = element.attributes.src
+
+        if (src) {
+            getRequest(src.value, function (res) {
+                console.log(res.responseText)
+            })
+            return
         }
-    })
 
-    const loadAttribute = attributes.find(v => v.name === 'load')
-    if (loadAttribute) {
-        let args = { html: this.innerHTML }
+        const tag = element.attributes.tag
+
+        addMacro(tag.value, element.innerHTML)
+    } catch (err) {
+        console.error('Something went wrong with define:')
+        console.error(err)
+    }
+
+    element.innerHTML = ''
+}
+
+function updateMacros(element) {
+    if (element === undefined) element = document.body
+
+    for (let macro in macros) {
+        const value = macros[macro]
+
+        function convert(el) {
+            el.outerHTML = value.replaceAll(/\{\s*content\s*\}/g, el.innerHTML)
+        }
+
+        if (element.tagName === macro.toUpperCase()) {
+            convert(element)
+        }
+
+        const elements = Array.from(document.querySelectorAll(macro))
+
+        elements.forEach(el => {
+            convert(el)
+        })
+    }
+}
+//#endregion
+
+function inlineScript(args) {
+    //#region Rendering
+    function setRenderFunction(element) {
+        if (element.tagName !== 'BUTTON') {
+            element.render = function () {
+                const scope = this
+
+                try {
+                    handleRenderResults(this, eval(this.inlineScript))
+                } catch (err) {
+                    handleExceptionResult(this, err)
+                }
+
+                renderAttributes(this)
+
+                return this
+            }
+
+            return
+        }
+
+        element.render = function () {
+            renderAttributes(this)
+            return this
+        }
+
+        element.onclick = function () {
+            eval(this.inlineScript)
+        }
+    }
+    //#endregion
+
+    //#region Attributes
+    function compileAttributes(element) {
+        const attributes = Array.from(element.attributes)
+        let inlineScriptAttributes = []
 
         attributes.forEach(v => {
-            if (!['class', 'id', 'style', 'load', 'reacts-to'].includes(v.name))
-                args[v.name] = attributeStringToVariable(v.value)
+            if (/{\s*{/gm.test(v.value)) {
+                inlineScriptAttributes.push({ name: v.name, value: v.value })
+            }
         })
 
-        load(this, loadAttribute.value, args)
+        const reactsToAttribute = attributes.find(v => v.name === 'reacts-to')
+        if (reactsToAttribute) {
+            addReaction(reactsToAttribute.value, element.uid)
+        }
+
+        element.inlineScriptAttributes = inlineScriptAttributes
     }
 
-    const reactsToAttribute = attributes.find(v => v.name === 'reacts-to')
-    if (reactsToAttribute) {
-        reactions.add(reactsToAttribute.value, this.uid)
-    }
+    function renderAttributes(element) {
+        const attributes = element.inlineScriptAttributes
+        const regex = /\{\{(.*?)\}\}/gm
 
-    this.inlineScriptAttributes = inlineScriptAttributes
-}
+        attributes.forEach(attribute => {
+            while ((m = regex.exec(attribute.value)) !== null) {
+                if (m.index === regex.lastIndex) {
+                    regex.lastIndex++
+                }
 
-let reactionInstance = 0
-function newReaction() {
-    return {
-        instance: reactionInstance++,
-        reactiveElements: {},
-        oldValues: [],
-        add: function (varName, uid) {
-            if (this.reactiveElements[varName] === undefined) this.reactiveElements[varName] = []
-            this.reactiveElements[varName].push(uid)
+                const match = m[0]
+                const index = m.index
+
+                let res = eval(match)
+                if (res === undefined) res = ''
+
+                let { value } = attribute
+                value = value.substring(0, index) + res.toString() + value.substr(index + match.length)
+                element.attributes[attribute.name].value = value
+                regex.lastIndex += res.toString().length
+            }
+        })
+
+        // load
+        const loadAttribute = element.attributes.load
+        if (loadAttribute !== undefined) {
+            let args = { html: element.innerHTML }
+
+            Array.from(element.attributes).forEach(v => {
+                if (!['class', 'id', 'style', 'load', 'reacts-to'].includes(v.name))
+                    args[v.name] = attributeStringToVariable(v.value)
+            })
+
+            load(element, loadAttribute.value, args)
+        }
+
+        // button
+        const valueAttribute = element.attributes.value
+        if (valueAttribute !== undefined && element.hasInlineScript && element.tagName === "BUTTON") {
+            element.innerHTML = valueAttribute.value
         }
     }
-}
-function Reactions() {
-    this.instance = reactionInstance++
-    this.reactiveElements = {}
+    //#endregion
 
-    this.oldValues = []
+    //#region Scan
+    function scan(element) {
+        if (isDefineExpression(element)) {
+            macro(element)
+            return
+        }
+        if (hasInlineScript(element)) {
+            setUniqueClassName(element)
+            element.inlineScript = element.innerHTML
+
+            compileAttributes(element)
+            setRenderFunction(element)
+            element.render()
+        } else {
+            compileAttributes(element)
+            renderAttributes(element)
+            Array.from(element.children).forEach(child => scan(child))
+        }
+    }
+    //#endregion
+
+    //#region Reactions
+    let reactiveElements = {}
+    let oldValues = []
     setInterval(() => {
-        console.log('Instance: ' + this.instance)
-        for (let varName in this.reactiveElements) {
-            const reactiveElement = this.reactiveElements[varName]
+        for (let varName in reactiveElements) {
+            const reactiveElement = reactiveElements[varName]
             const varValue = eval(varName)
 
-            if (this.oldValues[varName] !== varValue) {
-                this.oldValues[varName] = varValue;
+            if (oldValues[varName] !== varValue) {
+                oldValues[varName] = varValue;
                 for (let i = 0; i < reactiveElement.length; i++) {
                     try {
-                        document.querySelector('.' + UIDPrefix + reactiveElement[i]).render()
+                        document.querySelector("." + UIDPrefix + reactiveElement[i]).render()
                     } catch (err) {
+                        console.log(err)
                         console.group('removed element')
                         console.log('.' + UIDPrefix + reactiveElement[i])
                         console.groupEnd('removed element')
 
-                        this.reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
+                        reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
                     }
                 }
             }
         }
     }, 50)
-}
 
-function inlineScript() {
-    scan(document.body, (e) => {
-        e.render = function () {
-            eval(renderElement + 'renderElement.call(this)')
-        }
-        e.render()
-        if (e.tagName === 'BUTTON') {
-            e.onclick = function () {
-                eval(this.inlineScript)
-            }
-        }
+    function addReaction(varName, uid) {
+        if (reactiveElements[varName] === undefined) reactiveElements[varName] = []
+        reactiveElements[varName].push(uid)
+    }
+    //#endregion
 
-    }, (e) => {
-        renderAttributes.call(e, (m) => eval(m))
+    //#region Execution
+    setTimeout(() => {
+        updateMacros()
     })
+
+    if (args === undefined) {
+        scan(document.body)
+        scopeAllStyles(document.body)
+        return document.body
+    }
+
+    if (args instanceof HTMLElement) {
+        scan(args)
+        updateMacros(args)
+        scopeAllStyles(args)
+        return args
+    }
+
+    if (typeof args === 'string') {
+        let element = createElement(args)
+        updateMacros(element)
+        scopeAllStyles(element)
+        scan(element)
+
+        return element
+    }
+    //#endregion
 }

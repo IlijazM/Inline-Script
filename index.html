@@ -6,88 +6,33 @@
     <title>Document</title>
 
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono@1&display=swap" rel="stylesheet">
+    <link href="styles/main.css" rel="stylesheet">
 
     <script src="scripts/inline-script.js"></script>
     <script src="https://ilijazm.github.io/burning-brackets-js/burning-brackets.min.js"></script>
 
-    <style>
-        body {
-            margin: 0;
-
-            font-family: 'DM Mono', monospace;
-
-            background: whitesmoke;
-        }
-
-        .invisible {
-            position: fixed !important;
-            top: -9999999999vw !important;
-            left: -9999999999vh !important;
-            transform: translate(-9999999999vw, -9999999999vh) scale(0) !important;
-            display: none !important;
-            width: 0px !important;
-            height: 0px !important;
-            opacity: 0 !important;
-        }
-
-        .error {
-            font-size: 20px !important;
-            background: red !important;
-            color: yellow !important;
-        }
-
-        .wrapper {
-            padding-left: calc((100vw - 800px) / 2);
-            padding-right: calc((100vw - 800px) / 2);
-        }
-
-        * {
-            --primary: #1cb417;
-            --primary-hover: #33c52e;
-        }
-    </style>
+    <script src="scripts/app.js" defer></script>
+    <script src="scripts/main.js" defer></script>
 </head>
 
 <body class="invisible">
-<!-- 
-    <div id="test" load="header.html" title="Inline-script-js" buttonhref="/install.html">
-        {{
-            navigation.map(v => {
-                const className = document.location.pathname === v.url || document.location.pathname === v.altUrl ? 'current' : ''
-                return (<a class={{className}} href={{v.url}}>
-                    { v.name }
-                </a>)
-            })
-        }}
-    </div> -->
+    <define tag="wrapper">
+        <div class="wrapper">{ content }</div>
+    </define>
 
-    <div id="outer">
-        {{
-            let a = 100..random
-            (<div>
-                <h1 id="test">{ a }</h1>
-                <button value="random">{
-                    a = 100..random
+    <define src="components/hero.html"></define>
 
-                    query("#test").render()
-                }</button>
-            </div>)
-        }}
+    <div load="components/header.html" title="inline-script-js" buttonhref="/install.html">{{
+        navigation.map(v => {
+            const className = document.location.pathname === v.url || document.location.pathname === v.altUrl ? 'current' : ''
+            return (<a class={{className}} href={{v.url}}>{ v.name }</a>)
+        })
+    }}</div>
+
+    <div load="components/hero.html">
+
     </div>
 
-    <script>
-        let i = 0
-
-        const navigation = [
-            { url: '/index.html', altUrl: '/', name: 'Home' },
-            { url: '/showcase.html', name: 'Showcase' },
-            { url: '/learn.html', name: 'Learn' },
-            { url: '/documentation.html', name: 'Documentation' },
-        ]
-
-        inlineScript()
-        
-        document.body.classList.remove("invisible")
-    </script>
+    <x6>Hello, world!</x6>
 </body>
 </html>

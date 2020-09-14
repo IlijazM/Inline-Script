@@ -1,0 +1,30 @@
+.invisible {
+    position: fixed !important;
+    top: -9999999999vw !important;
+    left: -9999999999vh !important;
+    transform: translate(-9999999999vw, -9999999999vh) scale(0) !important;
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+    opacity: 0 !important;
+}
+
+* {
+    --primary: #1cb417;
+    --primary-hover: #33c52e;
+}
+
+body {
+    min-width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+
+    font-family: 'DM Mono', monospace;
+
+    background: whitesmoke;
+}
+
+.wrapper {
+    padding-left: calc((100vw - 800px) / 2);
+    padding-right: calc((100vw - 800px) / 2);
+}
