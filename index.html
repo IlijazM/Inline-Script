@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 
-    <script src="scripts/inline-script-head.js"></script>
-    <script src="scripts/inline-script-body.js" defer></script>
+    <script src="scripts/inline-script.js"></script>
     <script src="https://ilijazm.github.io/burning-brackets-js/burning-brackets.min.js"></script>
 
     <style>
@@ -34,11 +33,35 @@
 </head>
 
 <body class="invisible">
-    <div id="outer">{{
-        let a = 100;
+    <div class="outer">{{
+        [1, 2, 3].map(i => {
+            return (<h1 class="number-{{i}}">{ i }</h1>)
+        })
+        }}</div>
 
-        load(this, 'test.html', { navigation: ['Home', 'About', 'Pricing', 'Contact'] })
-    }}</div>
+    <h1 id="test" class="number-{{3..random + 1}}">{{
+        setTimeout(() => {
+            this.render()
+        }, 100);
+
+        "hi"
+    }}</h1>
+
+    <button onclick="test.render()">Render</button>
+
+    <style>
+        .number-1 {
+            color: red;
+        }
+
+        .number-2 {
+            color: blue;
+        }
+
+        .number-3 {
+            color: green;
+        }
+    </style>
 
     <script>
         let array = ["Hello", "world", "And stuff"]
