@@ -61,10 +61,6 @@ HTMLElement.prototype.render = function () {
     renderElement.call(this, (m) => eval(m))
 }
 
-HTMLElement.prototype.buttonRender = function () {
-    eval(this.inlineScript)
-}
-
 Object.defineProperty(HTMLElement.prototype, 'hasInlineScript', {
     get: function () { return this.inlineScript_ !== undefined }
 })
@@ -78,16 +74,7 @@ Object.defineProperty(HTMLElement.prototype, 'inlineScript', {
             inlineScript = compileInlineScript(inlineScript)
             this.inlineScript_ = inlineScript
             this.classList.add(hasInlineScriptClassName)
-
-            if (this.tagName === 'BUTTON') this.setAttribute('onclick', 'this.buttonRender()')
         }
-    }
-})
-
-Object.defineProperty(HTMLElement.prototype, 'uid', {
-    get: function () {
-        if (this.uid_ === undefined) return (this.uid_ = newUID())
-        return this.uid_
     }
 })
 
@@ -109,7 +96,7 @@ function load(element, url, args) {
             let child
 
             try {
-                child = eval(renderElement + htmlExpression + 'htmlExpression(this.responseText)')
+                child = eval(htmlExpression + 'htmlExpression(this.responseText)')
             } catch (err) {
                 // ERROR
                 child = createElement('<div class="error">' + err + '</div>')
@@ -196,6 +183,9 @@ function renderAttributes(callback) {
 }
 
 function renderElement(attributeCallback) {
+    const query = (selector) => { return this.querySelector(selector) }
+    const queryAll = (selector) => { return this.querySelector(selector) }
+
     renderAttributes.call(this, (m) => eval(m))
 
     if (!this.hasInlineScript) return this
@@ -206,19 +196,18 @@ function renderElement(attributeCallback) {
 
 // Scan
 
-function scan(element, compile, fin) {
-    setUniqueClassName(element)
-
+function scan(element, renderElement, renderAttributes) {
     if (hasInlineScript(element)) {
+        setUniqueClassName(element)
         element.inlineScript = element.innerHTML
-        if (compile !== undefined) compile(element)
+        if (renderElement !== undefined) renderElement(element)
         compileAttributes.call(element)
-        if (fin !== undefined) fin(element)
+        if (renderAttributes !== undefined) renderAttributes(element)
     } else {
         compileAttributes.call(element)
-        if (fin !== undefined) fin(element)
+        if (renderAttributes !== undefined) renderAttributes(element)
         scanChildren(element, (child) => {
-            scan(child, compile, fin)
+            scan(child, renderElement, renderAttributes)
         })
     }
 }
@@ -232,6 +221,8 @@ const UIDPrefix = "inline-script-uid-"
 function newUID() { return InlineScriptUID++ }
 
 function setUniqueClassName(element) {
+    if (element.uid !== undefined) return
+    element.uid = newUID()
     element.classList.add(UIDPrefix + element.uid)
 }
 
@@ -250,11 +241,19 @@ function htmlExpression(html) {
     let element = createElement(html)
 
     scan(element, (e) => {
-        renderElement.call(e)
+        e.render = function () {
+            eval(renderElement + 'renderElement.call(this)')
+        }
+        e.render()
+        if (e.tagName === 'BUTTON') {
+            e.onclick = function () {
+                eval(this.inlineScript)
+            }
+        }
+
     }, (e) => {
         renderAttributes.call(e, (m) => eval(m))
     })
-
 
     return element
 }
@@ -308,7 +307,7 @@ function compileInlineScript(inlineScript) {
                 htmlExpressionDepth++
 
                 if (htmlExpressionDepth === 1) {
-                    newInlineScript += "eval(`" + renderElement + "\n\n" + htmlExpression + "\n\n" + 'htmlExpression(\\`<'
+                    newInlineScript += "eval(`eval(eval(htmlExpression).toString());" + 'htmlExpression(\\`<'
                     i++
                     continue
                 }
@@ -353,7 +352,7 @@ function compileAttributes() {
         }
     })
 
-    let loadAttribute = attributes.find(v => v.name === 'load')
+    const loadAttribute = attributes.find(v => v.name === 'load')
     if (loadAttribute) {
         let args = { html: this.innerHTML }
 
@@ -365,14 +364,68 @@ function compileAttributes() {
         load(this, loadAttribute.value, args)
     }
 
+    const reactsToAttribute = attributes.find(v => v.name === 'reacts-to')
+    if (reactsToAttribute) {
+        reactions.add(reactsToAttribute.value, this.uid)
+    }
+
     this.inlineScriptAttributes = inlineScriptAttributes
 }
 
-function inlineScript() {
-    scan(document.body, (v) => {
-        v.render()
-    }, (v) => {
-        renderAttributes.call(v, (m) => eval(m))
-    })
+let reactionInstance = 0
+function newReaction() {
+    return {
+        instance: reactionInstance++,
+        reactiveElements: {},
+        oldValues: [],
+        add: function (varName, uid) {
+            if (this.reactiveElements[varName] === undefined) this.reactiveElements[varName] = []
+            this.reactiveElements[varName].push(uid)
+        }
+    }
+}
+function Reactions() {
+    this.instance = reactionInstance++
+    this.reactiveElements = {}
 
+    this.oldValues = []
+    setInterval(() => {
+        console.log('Instance: ' + this.instance)
+        for (let varName in this.reactiveElements) {
+            const reactiveElement = this.reactiveElements[varName]
+            const varValue = eval(varName)
+
+            if (this.oldValues[varName] !== varValue) {
+                this.oldValues[varName] = varValue;
+                for (let i = 0; i < reactiveElement.length; i++) {
+                    try {
+                        document.querySelector('.' + UIDPrefix + reactiveElement[i]).render()
+                    } catch (err) {
+                        console.group('removed element')
+                        console.log('.' + UIDPrefix + reactiveElement[i])
+                        console.groupEnd('removed element')
+
+                        this.reactiveElements[varName] = reactiveElement.filter((v, j) => j !== i)
+                    }
+                }
+            }
+        }
+    }, 50)
+}
+
+function inlineScript() {
+    scan(document.body, (e) => {
+        e.render = function () {
+            eval(renderElement + 'renderElement.call(this)')
+        }
+        e.render()
+        if (e.tagName === 'BUTTON') {
+            e.onclick = function () {
+                eval(this.inlineScript)
+            }
+        }
+
+    }, (e) => {
+        renderAttributes.call(e, (m) => eval(m))
+    })
 }

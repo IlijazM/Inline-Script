@@ -49,7 +49,7 @@
 </head>
 
 <body class="invisible">
-
+<!-- 
     <div id="test" load="header.html" title="Inline-script-js" buttonhref="/install.html">
         {{
             navigation.map(v => {
@@ -59,13 +59,25 @@
                 </a>)
             })
         }}
+    </div> -->
+
+    <div id="outer">
+        {{
+            let a = 100..random
+            (<div>
+                <h1 id="test">{ a }</h1>
+                <button value="random">{
+                    a = 100..random
+
+                    query("#test").render()
+                }</button>
+            </div>)
+        }}
     </div>
 
-    <button value="SUBMIT">{{
-        console.log("RUN")
-    }}</button>
-
     <script>
+        let i = 0
+
         const navigation = [
             { url: '/index.html', altUrl: '/', name: 'Home' },
             { url: '/showcase.html', name: 'Showcase' },
