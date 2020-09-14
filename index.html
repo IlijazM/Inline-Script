@@ -46,15 +46,21 @@
 
 <body class="invisible">
 
-    <div load="header.html" title="Inline-script-js">
-        <a href="/">Home</a>
-        <a href="/About">About</a>
-        <a href="/Pricing">Pricing</a>
-        <a href="/Contact">Contact</a>
+    <div id="test" load="header.html" title="Inline-script-js">
+        {{
+            navigation.map(v => {
+                return (<a href="{{v.url}}">{ v.name }</a>)
+        })
+        }}
     </div>
 
     <script>
-        let array = ["Hello", "world", "And stuff"]
+        const navigation = [
+            { url: "index.html", name: "Home" },
+            { url: "about.html", name: "About" },
+            { url: "pricing.html", name: "Pricing" },
+            { url: "contact.html", name: "Contact" },
+        ]
 
         inlineScript()
     </script>

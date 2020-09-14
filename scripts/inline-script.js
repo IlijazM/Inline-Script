@@ -58,7 +58,7 @@ scopeAllStyles()
 // Custom properties
 
 HTMLElement.prototype.render = function () {
-    renderElement.call(this)
+    renderElement.call(this, (m) => eval(m))
 }
 
 Object.defineProperty(HTMLElement.prototype, 'hasInlineScript', {
@@ -183,7 +183,7 @@ function renderAttributes(callback) {
     })
 }
 
-function renderElement() {
+function renderElement(attributeCallback) {
     renderAttributes.call(this, (m) => eval(m))
     if (this.hasInlineScript) return convertEvalResults(this, eval(this.inlineScript))
     return this
@@ -191,17 +191,19 @@ function renderElement() {
 
 // Scan
 
-function scan(element, compile) {
+function scan(element, compile, fin) {
     setUniqueClassName(element)
-
-    compileAttributes.call(element)
 
     if (hasInlineScript(element)) {
         element.inlineScript = element.innerHTML
-        compile(element)
+        if (compile !== undefined) compile(element)
+        compileAttributes.call(element)
+        if (fin !== undefined) fin(element)
     } else {
+        compileAttributes.call(element)
+        element.render()
         scanChildren(element, (child) => {
-            scan(child, compile)
+            scan(child, compile, fin)
         })
     }
 }
@@ -234,7 +236,10 @@ function htmlExpression(html) {
 
     scan(element, (e) => {
         renderElement.call(e)
+    }, (e) => {
+        renderAttributes.call(e, (m) => eval(m))
     })
+
 
     return element
 }
@@ -342,19 +347,17 @@ function compileAttributes() {
                 args[v.name] = attributeStringToVariable(v.value)
         })
 
-        console.log(args)
-
         load(this, loadAttribute.value, args)
     }
 
     this.inlineScriptAttributes = inlineScriptAttributes
-
-    if (inlineScriptAttributes.length > 0) { this.render() }
 }
 
 function inlineScript() {
     scan(document.body, (v) => {
         v.render()
+    }, (v) => {
+        renderAttributes.call(v, (m) => eval(m))
     })
 
     document.body.classList.remove("invisible")
