@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital@1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono@1&display=swap" rel="stylesheet">
 
     <script src="scripts/inline-script.js"></script>
     <script src="https://ilijazm.github.io/burning-brackets-js/burning-brackets.min.js"></script>
@@ -16,8 +16,7 @@
 
             font-family: 'DM Mono', monospace;
 
-            background: #333;
-            color: #aaa;
+            background: whitesmoke;
         }
 
         .invisible {
@@ -41,28 +40,38 @@
             padding-left: calc((100vw - 800px) / 2);
             padding-right: calc((100vw - 800px) / 2);
         }
+
+        * {
+            --primary: #1cb417;
+            --primary-hover: #33c52e;
+        }
     </style>
 </head>
 
 <body class="invisible">
 
-    <div id="test" load="header.html" title="Inline-script-js">
+    <div id="test" load="header.html" title="Inline-script-js" buttonhref="/install.html">
         {{
             navigation.map(v => {
-                return (<a href="{{v.url}}">{ v.name }</a>)
-        })
+                const className = document.location.pathname === v.url || document.location.pathname === v.altUrl ? 'current' : ''
+                return (<a class={{className}} href={{v.url}}>
+                    { v.name }
+                </a>)
+            })
         }}
     </div>
 
     <script>
         const navigation = [
-            { url: "index.html", name: "Home" },
-            { url: "about.html", name: "About" },
-            { url: "pricing.html", name: "Pricing" },
-            { url: "contact.html", name: "Contact" },
+            { url: '/index.html', altUrl: '/', name: 'Home' },
+            { url: '/showcase.html', name: 'Showcase' },
+            { url: '/learn.html', name: 'Learn' },
+            { url: '/documentation.html', name: 'Documentation' },
         ]
 
         inlineScript()
+        
+        document.body.classList.remove("invisible")
     </script>
 </body>
 </html>

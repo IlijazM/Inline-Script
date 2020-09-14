@@ -201,7 +201,7 @@ function scan(element, compile, fin) {
         if (fin !== undefined) fin(element)
     } else {
         compileAttributes.call(element)
-        element.render()
+        if (fin !== undefined) fin(element)
         scanChildren(element, (child) => {
             scan(child, compile, fin)
         })
@@ -360,5 +360,4 @@ function inlineScript() {
         renderAttributes.call(v, (m) => eval(m))
     })
 
-    document.body.classList.remove("invisible")
 }

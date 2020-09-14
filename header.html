@@ -1,10 +1,15 @@
 <div>
     <header class="wrapper">
-        <h3>{ title }</h3>
+        <div class="flex"><h3>{ title }</h3></div>
+        <div class="flex right">Github</div>
     </header>
 
     <nav class="wrapper">
-        { html }
+        <div class="flex left">{ html }</div>
+        <div class="flex right">
+            <a class="button" href={{buttonhref}}>Install</a>
+        </div>
+
     </nav>
 
     <style scoped>
@@ -12,31 +17,69 @@
             display: flex;
             align-items: center;
 
-            height: 70px;
+            height: 40px;
 
-            background: #444;
+            background: #222;
+            color: #ddd;
         }
 
         nav {
             display: flex;
             align-items: center;
 
-            height: 50px;
+            height: 70px;
 
-            background: #444;
+            background: #e0e0e0;
         }
 
         nav a {
-            color: inherit;
-            text-decoration: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
 
-            padding: 10px 20px;
+            height: 100%;
+            padding: 0 20px;
+
+            color: rgba(0, 0, 0, 0.4);
+            transition: color 200ms linear;
+
+            text-decoration: none;
+        }
+
+        nav .left a.current {
+            color: black;
+        }
+
+        nav .left a:hover {
+            color: black;
+        }
+
+        .flex {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+
+        .right {
+            margin-left: auto;
+        }
+
+        .button {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.3);
+
+            height: max-content;
+
+            border-radius: 20px;
+
+            padding: 10px 30px;
 
             transition: background 200ms linear;
         }
 
-        nav a:hover {
-            background: #4a4a4a;
+        .button:hover {
+            background: var(--primary-hover);
         }
     </style>
 
