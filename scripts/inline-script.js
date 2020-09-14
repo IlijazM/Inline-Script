@@ -324,7 +324,7 @@ function updateMacros(element) {
                 return element
             }
 
-            el = renameHTMLTagName(el, 'xyz')
+            el = renameHTMLTagName(el, 'div')
             el.innerHTML = value
 
             let args = { html: html }
@@ -429,6 +429,8 @@ function inlineScript(args) {
         // load
         const loadAttribute = element.attributes.load
         if (loadAttribute !== undefined) {
+            scanChildren(element)
+
             let args = { html: element.innerHTML }
 
             Array.from(element.attributes).forEach(v => {
@@ -463,8 +465,12 @@ function inlineScript(args) {
         } else {
             compileAttributes(element)
             renderAttributes(element)
-            Array.from(element.children).forEach(child => scan(child))
+            scanChildren(element)
         }
+    }
+
+    function scanChildren(element) {
+        Array.from(element.children).forEach(child => scan(child))
     }
     //#endregion
 
@@ -503,6 +509,7 @@ function inlineScript(args) {
     //#region Execution
     setTimeout(() => {
         updateMacros()
+        scopeAllStyles()
     })
 
     if (args === undefined) {

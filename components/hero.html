@@ -1,23 +1,38 @@
 <div>
-    <define x6>
-        <h1>{ html }</h1>
-        <h2>{ html }</h2>
-        <h3>{ html }</h3>
-        <h4>{ html }</h4>
-        <h5>{ html }</h5>
-        <h6>{ html }</h6>
-    </define>
+    <div>{{ html }}</div>
 
-    <define tag="wrapper">
-        <div class="wrapper">
-            { html }
-        </div>
-    </define>
+    <flex>
+        <a class="button primary">GETTING STARTED</a>
+        <a class="button">DOCUMENTATION</a>
+    </flex>
 
-    <style>
-        .wrapper {
-            padding-left: calc((100vw - 800px) / 2);
-            padding-right: calc((100vw - 800px) / 2);
+    <style scoped>
+        #this {
+            position: relative;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            
+            width: 100%;
+            height: calc(100vh - 200px);
+
+            text-align: center;
+        }
+        
+        h1 {
+            font-weight: 800;
+            font-size: 5em;
+
+            margin-bottom: 0;
+        }
+
+        h2 {
+            width: 600px;
+
+            font-weight: 400;
+            font-size: 1.3em;
         }
     </style>
 </div>

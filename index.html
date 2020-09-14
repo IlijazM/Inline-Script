@@ -6,7 +6,9 @@
     <title>Document</title>
 
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono@1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="styles/main.css" rel="stylesheet">
+    
 
     <script src="scripts/inline-script.js"></script>
     <script src="https://ilijazm.github.io/burning-brackets-js/burning-brackets.min.js"></script>
@@ -16,12 +18,19 @@
 </head>
 
 <body class="invisible">
-    <define backwards>
-        <h1>{{ html.split('').reverse().join('') }}</h1>
-    </define>
+    <link load="components/app.html">
 
-    <backwards>
-        Hello, world!
-    </backwards>
+    <div load="components/header.html" title={{productName}} buttonHref="/install.html">{{
+        navigation.map(item => {
+            const className = document.location.pathname === item.url || document.location.pathname === item.altUrl ? 'current' : ''
+            return (<a class={{className}} href={{item.url}}>{ item.name }</a>)
+        })
+    }}</div>
+
+    <div load="components/hero.html">
+        <h1>{{ productName }}</h1>
+        <h2>Inline script aims to improve your workflow when coding in raw html.
+            It organizes your code into components with very minimalist changes.</h2>
+    </div>
 </body>
 </html>
