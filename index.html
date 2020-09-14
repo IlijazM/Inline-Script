@@ -20,8 +20,6 @@
         <div class="wrapper">{ content }</div>
     </define>
 
-    <define src="components/hero.html"></define>
-
     <div load="components/header.html" title="inline-script-js" buttonhref="/install.html">{{
         navigation.map(v => {
             const className = document.location.pathname === v.url || document.location.pathname === v.altUrl ? 'current' : ''
@@ -29,9 +27,7 @@
         })
     }}</div>
 
-    <div load="components/hero.html">
-
-    </div>
+    <div load="components/hero.html"></div>
 
     <x6>Hello, world!</x6>
 </body>

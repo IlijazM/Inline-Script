@@ -1,8 +1,23 @@
-<define tag="x6">
-    <h1>{ content }</h1>
-    <h2>{ content }</h2>
-    <h3>{ content }</h3>
-    <h4>{ content }</h4>
-    <h5>{ content }</h5>
-    <h6>{ content }</h6>
-</define>
+<div>
+    <define tag="x6">
+        <h1>{ html }</h1>
+        <h2>{ html }</h2>
+        <h3>{ html }</h3>
+        <h4>{ html }</h4>
+        <h5>{ html }</h5>
+        <h6>{ html }</h6>
+    </define>
+
+    <define tag="wrapper">
+        <div class="wrapper">
+            { html }
+        </div>
+    </define>
+
+    <style>
+        .wrapper {
+            padding-left: calc((100vw - 800px) / 2);
+            padding-right: calc((100vw - 800px) / 2);
+        }
+    </style>
+</div>

@@ -23,8 +23,3 @@ body {
 
     background: whitesmoke;
 }
-
-.wrapper {
-    padding-left: calc((100vw - 800px) / 2);
-    padding-right: calc((100vw - 800px) / 2);
-}

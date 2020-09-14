@@ -287,15 +287,6 @@ function addMacro(tag, value) {
 
 function macro(element) {
     try {
-        const src = element.attributes.src
-
-        if (src) {
-            getRequest(src.value, function (res) {
-                console.log(res.responseText)
-            })
-            return
-        }
-
         const tag = element.attributes.tag
 
         addMacro(tag.value, element.innerHTML)
@@ -314,7 +305,8 @@ function updateMacros(element) {
         const value = macros[macro]
 
         function convert(el) {
-            el.outerHTML = value.replaceAll(/\{\s*content\s*\}/g, el.innerHTML)
+            const html = element.innerHTML
+            el.outerHTML = value
         }
 
         if (element.tagName === macro.toUpperCase()) {
