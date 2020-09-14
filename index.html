@@ -48,9 +48,27 @@
 </head>
 
 <body class="invisible">
-    <div>{{
-        load(this, "test.html")
-    }}</div>
+
+    <h1 class="color{{4..random}}">RANDOM COLOR</h1>
+
+    <style>
+        .color0 {
+            color: red;
+        }
+
+        .color1 {
+            color: green;
+        }
+
+        .color2 {
+            color: blue;
+        }
+
+        .color3 {
+            color: yellow;
+        }
+    </style>
+
     <script>
         let array = ["Hello", "world", "And stuff"]
 

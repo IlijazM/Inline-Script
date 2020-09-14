@@ -73,7 +73,6 @@ Object.defineProperty(HTMLElement.prototype, 'inlineScript', {
             let inlineScript = value
             inlineScript = compileInlineScript(inlineScript)
             this.inlineScript_ = inlineScript
-            compileAttributes.call(this)
         }
         this.classList.add(hasInlineScriptClassName)
     }
@@ -194,6 +193,8 @@ function renderElement() {
 
 function scan(element, compile) {
     setUniqueClassName(element)
+
+    compileAttributes.call(element)
 
     if (hasInlineScript(element)) {
         element.inlineScript = element.innerHTML
@@ -324,6 +325,8 @@ function compileAttributes() {
     })
 
     this.inlineScriptAttributes = inlineScriptAttributes
+
+    if (inlineScriptAttributes.length > 0) { this.render() }
 }
 
 function inlineScript() {
