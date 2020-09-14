@@ -34,20 +34,14 @@
 
 <body class="invisible">
     <div class="outer">{{
-        [1, 2, 3].map(i => {
-            return (<h1 class="number-{{i}}">{ i }</h1>)
-        })
-        }}</div>
+        let a = 100..random;
 
-    <h1 id="test" class="number-{{3..random + 1}}">{{
-        setTimeout(() => {
-            this.render()
-        }, 100);
-
-        "hi"
-    }}</h1>
-
-    <button onclick="test.render()">Render</button>
+        (<div>
+            <h1>Hello, world!</h1>
+            <h2>Bye bye world!</h2>
+            <h3>{ a }</h3>
+        </div>)
+    }}</div>
 
     <style>
         .number-1 {

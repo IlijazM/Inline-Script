@@ -120,6 +120,7 @@ function renderAttributes(callback) {
 function renderElement() {
     renderAttributes.call(this, (m) => eval(m))
     if (this.hasInlineScript) return convertEvalResults(this, eval(this.inlineScript))
+    return this
 }
 
 // Scan
@@ -163,9 +164,11 @@ function createElement(html) {
 function htmlExpression(html) {
     let element = createElement(html)
 
-    scan(element, () => { })
+    scan(element, (e) => {
+        renderElement.call(e)
+    })
 
-    return renderElement.call(element)
+    return element
 }
 
 function reverseSanitation(html) {
