@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <!-- Style -->
+    <link href="../styles/main.css" rel="stylesheet">
+    <link href="../styles/codepretify.css" rel="stylesheet">
+
+    <!-- Font awesome -->
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+    <!-- Code prettifier -->
+    <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+
+    <!-- Inline script -->
+    <script src="../inline-script.js"></script>
+
+    <!-- Burning brackets -->
+    <script src="https://ilijazm.github.io/burning-brackets-js/burning-brackets.min.js"></script>
+
+    <!-- Scripts -->
+    <script src="../scripts/app.js" defer></script>
+    <script src="../scripts/main.js" defer></script>
+</head>
+
+<body style="opacity: 0;">
+    <link load="../components/app.html">
+
+    <div load="../components/header.html" title={{productName}} buttonHref="/install.html"></div>
+
+    <div load="../components/learn.html">
+        <h1>Updating an element</h1>
+        <p>
+            Let's say you want to update your element whenever e.g. a button got pressed.
+            This is luckily very simple.
+            You can select your element and then call the function <var>render()</var> to re-render it.
+        </p>
+        <p>
+            In this example we have a <var>div</var> that randomly outputs one emoji of a list.
+            We can add a <var>onclick</var> attribute to it that calls the function <var>update</var>.
+            Now all that's left is a way to select the element and to call the <var>render</var> function.
+            We can select the element by the id <var>random</var> and voila.
+        </p>
+        
+<?prettify lang=html>
+<pre class="prettyprint">&lt;body>
+    &lt;div id="random" onclick="update()">{{
+        ['🧁', '🍫', '🍬', '🍭', '🍡'][Math.floor(Math.random() * 5)];
+    }}&lt;/div>
+
+    &lt;script>
+        function update() {
+            document.getElementById('random').render();
+        }
+    &lt;/script>
+&lt;/body></pre>
+
+        <h2>Take a look</h2>
+        <p class="codepen" data-theme-id="dark" data-default-tab="result,html" data-slug-hash="abNjdZg"></p>
+        <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+        <p>
+            This gives you great control over how your webapp should react.
+        </p>
+    </div>
+</body>
+
+</html>

@@ -10,4 +10,5 @@ const navigation = [
 const learnPages = [
     { url: '.html', name: 'Introduction' },
     { url: '/inline-script-syntax.html', name: 'Inline Script Syntax' },
+    { url: '/updating-an-element.html', name: 'Updating an element' },
 ]

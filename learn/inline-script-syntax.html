@@ -73,7 +73,7 @@
         
 <?prettify lang=html>
 <pre class="prettyprint">&lt;body>
-    &lt;div id="random">{{
+    &lt;div>{{
         ['🧁', '🍫', '🍬', '🍭', '🍡'][Math.floor(Math.random() * 5)];
     }}&lt;/div>
 &lt;/body></pre>
@@ -83,6 +83,34 @@
         <h2>Take a look</h2>
         <p class="codepen" data-theme-id="dark" data-default-tab="result,html" data-slug-hash="GRZBgME"></p>
         <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+        <h2>Further use cases</h2>
+        <p>This could be very useful for displaying constant values like the company name:</p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;body>
+    &lt;div>{{companyName}}&lt;/div>
+
+    &lt;script>
+        const companyName = 'My company';
+    &lt;/script>
+&lt;/body></pre>
+
+        <h2>Restrictions</h2>
+        <p>
+            As with all good things this one also has some limits.
+            You <b>may not</b> use the template literals syntax ( <var>`</var> ) in your code.
+        </p>
+        <p>
+            It could also be the case that the page takes too long to render and hence your page reveals
+            the initial inline script code.
+            To bypass that you can set the display of the body to <var>none</var> by default and 
+            after you executed the function <var>inlineScript</var> you reveal the body.
+        </p>
+
+<?prettify lang=havascript>
+<pre class="prettyprint">inlineScript();
+document.body.style.display = 'block';</pre>
     </div>
 </body>
 
