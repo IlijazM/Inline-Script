@@ -1,6 +1,7 @@
-setTimeout(() => {
-    document.body.classList.remove("invisible")
-}, 1000)
-
 inlineScript()
-document.body.classList.remove("invisible")
+
+document.body.style.transition = 'opacity 200ms linear'
+
+setTimeout(() => {
+    document.body.style.opacity = 1
+}, 10)

@@ -2,8 +2,8 @@
     <div>{{ html }}</div>
 
     <flex>
-        <a class="button primary">GETTING STARTED</a>
-        <a class="button">DOCUMENTATION</a>
+        <a href={{button1href}} class="button primary">{ button1 }</a>
+        <a href={{button2href}} class="button">{ button2 }</a>
     </flex>
 
     <style scoped>
@@ -20,6 +20,10 @@
 
             text-align: center;
         }
+
+        #this+* {
+            margin-top: 10px
+        }
         
         h1 {
             font-weight: 800;
@@ -33,6 +37,8 @@
 
             font-weight: 400;
             font-size: 1.3em;
+
+            margin: 0 auto;
         }
     </style>
 </div>

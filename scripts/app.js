@@ -6,3 +6,8 @@ const navigation = [
     { url: '/learn.html', name: 'Learn' },
     { url: '/documentation.html', name: 'Documentation' },
 ]
+
+const learnPages = [
+    { url: '.html', name: 'Introduction' },
+    { url: '/inline-script-syntax.html', name: 'Inline Script Syntax' },
+]

@@ -66,6 +66,7 @@ function getRequest(url, res) {
     xmlHttp.open("GET", url, true)
     xmlHttp.send(null)
 }
+
 function load(element, url, args) {
     const xmlHttp = new XMLHttpRequest()
     xmlHttp.onload = function () {
@@ -86,8 +87,11 @@ function load(element, url, args) {
             const scripts = element.querySelectorAll("script")
             scripts.forEach((script) => {
                 const scriptElement = document.createElement("script")
+                if (script.attributes.src !== undefined) scriptElement.setAttribute('src', script.attributes.src.value)
+                if (script.attributes.async !== undefined) scriptElement.setAttribute('async', script.attributes.async.value)
+                if (script.attributes.defer !== undefined) scriptElement.setAttribute('defer', script.attributes.defer.value)
                 scriptElement.innerHTML = script.innerHTML
-                document.body.appendChild(scriptElement)
+                document.head.appendChild(scriptElement)
             })
         }
     }
@@ -242,6 +246,11 @@ function handleRenderResults(element, result) {
     element.innerHTML = ''
 
     if (result === undefined) return
+
+    if (result instanceof HTMLCollection) {
+        Array.from(result).forEach(child => element.append(child))
+        return
+    }
 
     if (result instanceof HTMLElement) {
         element.append(result)
@@ -429,7 +438,7 @@ function inlineScript(args) {
         if (loadAttribute !== undefined) {
             scanChildren(element)
 
-            let args = { html: element.innerHTML }
+            let args = { html: element.children }
 
             Array.from(element.attributes).forEach(v => {
                 if (!['class', 'id', 'style', 'load', 'reacts-to'].includes(v.name))

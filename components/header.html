@@ -1,18 +1,38 @@
 <div>
-    <header class="wrapper">
-        <div class="flex"><h3>{ title }</h3></div>
-        <div class="flex right">Github</div>
-    </header>
+    <div class="outer">
+        <header class="wrapper">
+            <div class="flex"><h3>{ title }</h3></div>
+            <a href="https://github.com/IlijazM/Inline-Script " target="_blank" class="flex right icon">
+                <i class="fa fa-github fa-lg"></i>
+            </a>
+        </header>
+    
+        <nav class="wrapper">
+            <div class="flex left">{{
+                navigation.map(item => {
+                    const className = document.location.pathname === item.url || document.location.pathname === item.altUrl ? 'current' : ''
+                    return (<a class={{className}} href={{item.url}}>{ item.name }</a>)
+                })
+            }}</div>
+            <div class="flex right">
+                <a class="button primary" href={{buttonhref}}>Install</a>
+            </div>
+        </nav>
+    </div>
 
-    <nav class="wrapper">
-        <div class="flex left">{ html }</div>
-        <div class="flex right">
-            <a class="button primary" href={{buttonhref}}>Install</a>
-        </div>
-
-    </nav>
+    <div class="distance"></div>
 
     <style scoped>
+        .outer {
+            position: fixed;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .distance {
+            height: 110px;
+        }
+
         header {
             display: flex;
             align-items: center;
@@ -32,6 +52,12 @@
             background: #e0e0e0;
         }
 
+        a {
+            color: white;
+
+            text-decoration: none;
+        }
+
         nav .left a {
             display: flex;
             justify-content: center;
@@ -42,8 +68,6 @@
 
             color: rgba(0, 0, 0, 0.4);
             transition: color 200ms linear;
-
-            text-decoration: none;
         }
 
         nav .left a.current {
@@ -62,6 +86,15 @@
 
         .right {
             margin-left: auto;
+        }
+
+        .icon {
+            color: white;
+            transition: color 200ms linear;
+        }
+
+        .icon:hover {
+            color: #aaa;
         }
     </style>
 </div>

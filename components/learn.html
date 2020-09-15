@@ -1,0 +1,181 @@
+<div>
+    <div class="learn">
+        <nav>
+            <ul>{{
+                learnPages.map(item => {
+                    const className = document.location.pathname === '/learn' + item.url ? 'current' : ''
+                    return (<li><a class={{className}} href="/learn{{item.url}}">{ item.name }</a></li>)
+                })
+            }}</ul>
+        </nav>
+        <main>
+            <div>
+                { html }
+            </div>
+        </main>
+
+        <main class="nav">{{
+            const entries = Object.entries(learnPages)
+            let index = parseInt(entries.find(v => '/learn' + v[1].url === document.location.pathname)[0])
+
+            let previousPage = entries[index - 1]
+            let nextPage = entries[index + 1]
+
+            let output = []
+            if (previousPage === undefined) {
+                output.push((<a></a>))
+            } else {
+                previousPage = previousPage[1]
+                output.push((<a href="/learn{{previousPage.url}}">
+                    <i class="fa fa-angle-left"></i>
+                    <b class="color">Previous</b>
+                    <b>{ previousPage.name }</b>
+                </a>))
+            }
+
+            output.push((<span></span>))
+            
+            if (nextPage === undefined) {
+                output.push((<a></a>))
+            } else {
+                nextPage = nextPage[1]
+                output.push((<a href="/learn{{nextPage.url}}">
+                    <b class="color">Next</b>
+                    <b>{ nextPage.name }</b>
+                    <i class="fa fa-angle-right"></i>
+                </a>))
+            }
+
+            output;
+        }}</main>
+
+        <div>{{
+            load(this, "../components/footer.html")
+        }}</div>
+    </div>
+
+    <script>
+        PR.prettyPrint()
+    </script>
+
+    <style scoped>
+        nav {
+            z-index: 5;
+            position: fixed;
+
+            top: 0;
+
+            width: 250px;
+            box-shadow: 6px 0 6px rgba(0,0,0,.1);
+            height: 100%;
+
+            padding-top: 110px;
+
+            background: whitesmoke;
+            
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            margin-top: 15px;
+            padding: 0;
+        }
+
+        nav li {
+            display: flex;
+            align-items: center;
+            height: 40px;
+
+            padding-left: 15px;
+
+            cursor: pointer;
+        }
+
+        nav li:hover {
+            background: #ddd;
+        }
+
+        nav li:hover a {
+            color: var(--primary);
+        }
+
+        nav a {
+            text-decoration: none;
+            font-size: 14px;
+            color: #444;
+            text-transform: uppercase;
+        }
+
+        nav a.current {
+            color: var(--primary);
+        }
+
+        .nav, .nav a {
+            text-decoration: none;
+            color: black;
+            cursor: pointer;
+            display: flex;
+        }
+
+        .nav a {
+            width: 100%;
+        }
+
+        .nav b {
+            font-weight: normal;
+            margin: 0 5px;
+        }
+
+        .nav b.color {
+            color: var(--primary);
+        }
+
+        .nav i {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        .nav span {
+            width: 100%;
+        }
+
+        main {
+            transform: translateX(300px);
+            width: calc(100vw - 400px);
+            max-width: 1000px;
+
+            padding-top: 20px;
+        }
+
+        h1::after {
+            display: none;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        p {
+            font-size: 14px;
+            color: #444;
+        }
+
+        footer {
+            width: calc(100vw - 267px);
+            transform: translateX(250px);
+        }
+
+        .cp_embed_wrapper {
+            margin: 0;
+            padding: 0;
+        }
+
+    </style>
+</div>
