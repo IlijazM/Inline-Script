@@ -3,8 +3,8 @@
         <nav>
             <ul>{{
                 learnPages.map(item => {
-                    const className = document.location.pathname === '/learn' + item.url ? 'current' : ''
-                    return (<li><a class={{className}} href="/learn{{item.url}}">{ item.name }</a></li>)
+                    const className = document.location.pathname === item.url ? 'current' : ''
+                    return (<li><a class={{className}} href={{item.url}}>{ item.name }</a></li>)
                 })
             }}</ul>
         </nav>
@@ -16,7 +16,8 @@
 
         <main class="nav">{{
             const entries = Object.entries(learnPages)
-            let index = parseInt(entries.find(v => '/learn' + v[1].url === document.location.pathname)[0])
+            console.log(entries)
+            let index = parseInt(entries.find(v => v[1].url === document.location.pathname)[0])
 
             let previousPage = entries[index - 1]
             let nextPage = entries[index + 1]
@@ -26,7 +27,7 @@
                 output.push((<a></a>))
             } else {
                 previousPage = previousPage[1]
-                output.push((<a href="/learn{{previousPage.url}}">
+                output.push((<a href={{previousPage.url}}>
                     <i class="fa fa-angle-left"></i>
                     <b class="color">Previous</b>
                     <b>{ previousPage.name }</b>
@@ -39,7 +40,7 @@
                 output.push((<a></a>))
             } else {
                 nextPage = nextPage[1]
-                output.push((<a href="/learn{{nextPage.url}}">
+                output.push((<a href={{nextPage.url}}>
                     <b class="color">Next</b>
                     <b>{ nextPage.name }</b>
                     <i class="fa fa-angle-right"></i>

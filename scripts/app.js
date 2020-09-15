@@ -1,14 +1,19 @@
 const productName = 'Inline-script.js'
 
+let preUrl = ''
+if (document.location.host === "ilijazm.github.io") {
+    preUrl = '/Inline-Script'
+}
+
 const navigation = [
-    { url: '/index.html', altUrl: '/', name: 'Home' },
-    { url: '/showcase.html', name: 'Showcase' },
-    { url: '/learn.html', name: 'Learn' },
-    { url: '/documentation.html', name: 'Documentation' },
+    { url: preUrl + '/index.html', altUrl: '/', name: 'Home' },
+    { url: preUrl + '/showcase.html', name: 'Showcase' },
+    { url: preUrl + '/learn.html', name: 'Learn' },
+    { url: preUrl + '/documentation.html', name: 'Documentation' },
 ]
 
 const learnPages = [
-    { url: '.html', name: 'Introduction' },
-    { url: '/inline-script-syntax.html', name: 'Inline Script Syntax' },
-    { url: '/updating-an-element.html', name: 'Updating an element' },
+    { url: preUrl + '/learn.html', name: 'Introduction' },
+    { url: preUrl + '/learn/inline-script-syntax.html', name: 'Inline Script Syntax' },
+    { url: preUrl + '/learn/updating-an-element.html', name: 'Updating an element' },
 ]
