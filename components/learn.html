@@ -33,7 +33,6 @@
                 </a>))
             }
 
-            output.push((<span></span>))
             
             if (nextPage === undefined) {
                 output.push((<a></a>))
@@ -116,6 +115,11 @@
             color: black;
             cursor: pointer;
             display: flex;
+        }
+
+        .nav a:nth-child(2) *:nth-child(1) {
+            text-align: right !important;
+            margin-left: auto;
         }
 
         .nav a {
