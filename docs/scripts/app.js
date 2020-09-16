@@ -1,6 +1,6 @@
 const productName = 'Inline-script.js'
 
-let preUrl = ''
+let preUrl = '/docs'
 if (document.location.host === "ilijazm.github.io") {
     preUrl = '/Inline-Script'
 }
