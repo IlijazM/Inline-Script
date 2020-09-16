@@ -16,6 +16,8 @@
 
         <main class="nav">{{
             const entries = Object.entries(documentationPages)
+            console.log(localPath)
+            console.log(entries)
             let index = parseInt(entries.find(v => v[1].url === localPath)[0])
 
             let previousPage = entries[index - 1]
