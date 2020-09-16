@@ -11,11 +11,11 @@
             <div class="flex left">{{
                 navigation.map(item => {
                     const className = document.location.pathname === item.url || document.location.pathname === item.altUrl ? 'current' : ''
-                    return (<href class={{className}} to={{item.url}}>{ item.name }</href>)
+                    return (<a class={{className}} href={{item.url}}>{ item.name }</a>)
                 })
             }}</div>
             <div class="flex right">
-                <href class="button primary" to={{buttonhref}}>Install</href>
+                <a class="button primary" href={{buttonhref}}>Install</a>
             </div>
         </nav>
     </div>

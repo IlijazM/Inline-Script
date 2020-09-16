@@ -19,14 +19,6 @@
         <div class="wrapped">{{ html }}</div>
     </define>
 
-    <define href>
-        <a
-            onclick="fadeOut();setTimeout(() => { document.location.pathname = '{{to}}' }, 200)"
-            style="cursor:pointer;">
-            {{html}}
-        </a>
-    </define>
-
     <style>
         .wrapper {
             padding-left: calc((100vw - 800px) / 2);

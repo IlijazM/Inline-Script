@@ -1,0 +1,44 @@
+[
+    {
+        "name": "Home",
+        "url": ""
+    },
+    {
+        "name": "Showcase",
+        "url": "/Showcase"
+    },
+    {
+        "name": "Documentation",
+        "url": "/Documentation",
+        "subPaths": [
+            {
+                "name": "Introduction",
+                "url": "/Documentation/Introduction"
+            },
+            {
+                "name": "Inline Script Syntax",
+                "url": "/Documentation/Inline-Script-Syntax"
+            },
+            {
+                "name": "Updating an element",
+                "url": "/Documentation/Updating-an-element"
+            },
+            {
+                "name": "Button Syntax",
+                "url": "/Documentation/Button-Syntax"
+            },
+            {
+                "name": "HTML Syntax",
+                "url": "/Documentation/HTML-Syntax"
+            }
+        ]
+    },
+    {
+        "name": "Information",
+        "url": "/Information"
+    },
+    {
+        "name": "Impressum",
+        "url": "/Impressum"
+    }
+]

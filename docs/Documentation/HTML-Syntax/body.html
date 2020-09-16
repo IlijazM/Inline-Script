@@ -1,0 +1,148 @@
+<div>
+    <div load="{{globalPath}}/components/learn.html">
+        <h1>HTML Syntax</h1>
+        <h2>Basics</h2>
+
+        <p>
+            <b>{ productName }</b> provides a now syntax to your inline script code.
+            It basically allows you to return HTML elements with ease.
+            You can use this syntax by putting your html element inside parentheses.
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>{{
+    (&lt;h1>Hello, world&lt;/h1>)
+}}&lt;/div></pre>
+
+        <h2>Store html in variables</h2>
+
+        <p>
+            You can also set this to a regular variable like following:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>{{
+    let element = (&lt;h1>&lt;/h1>);
+    element.innerHTML = 'Hello, world';
+    element
+}}&lt;/div></pre>
+
+        <p>
+            This will return a new element with the content <var>'Hello, world'</var>.
+        </p>
+
+        <h3>Take a look</h3>
+        <p class="codepen" data-theme-id="dark" data-default-tab="result,html" data-slug-hash="ExKpaJV"></p>
+
+        <p>
+            This also works with <b>arrays</b>.
+            If you fill an array with HTMLElements, each one will get appended to the parent element.
+        </p>
+
+        <h2>Store html in arrays</h2>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>{{
+    let elementA = (&lt;h1>Hello&lt;/h1>);
+    let elementB = (&lt;h2>world&lt;/h2>);
+
+    [elementA, elementB];
+}}&lt;/div></pre>
+
+        <h3>Take a look</h3>
+        <p class="codepen" data-theme-id="dark" data-default-tab="result,html" data-slug-hash="yLOqVLd"></p>
+
+        <h2>Nesting the inline script syntax</h2>
+
+        <p>
+            One of the most practical ways to use this syntax is to <b>nest it in itself</b>.
+            Like with regular elements, an element that got defined by the new syntax
+            can also use the inline script syntax like following:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>{{
+    (&lt;h1>{ Math.random(); }&lt;/h1>)
+}}&lt;/div></pre>
+
+        <p>
+            Why is this useful?
+            Maybe you want to generate different kinds of elements based on some input.
+            In this example 50% of the time a red text will appear
+            and the other 50% of the time a blue text will appear.
+            This can be implemented as follows:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>{{
+    Math.random() > 0.5 ? (&lt;p style="color:red;">red&lt;/p>) : (&lt;p style="color:blue;">blue&lt;/p>)
+}}&lt;/div></pre>
+
+        <p>It's also possible to use the inline syntax on a child of the html element.</p>
+
+        <h2>Using local variables</h2>
+
+        <p>
+            If you define a variable inside the inline script syntax,
+            you can access the variable inside this scope.
+            For example you want to display a text based on some input that returns
+            a random word. You can implement this as follows:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>{{
+    const text = ['lorem', 'ipsum', 'dolor', 'sit'][Math.floor(Math.random() * 4)];
+
+    (&lt;h1>{ text }&lt;/h1>)
+}}&lt;/div></pre>
+
+        <p>
+            You can nest these element indefinitely so this is a valid syntax as well:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>{{
+    const text1 = ['lorem', 'ipsum', 'dolor', 'sit'][Math.floor(Math.random() * 4)];
+
+    (&lt;div>{
+        const text2 = ['lorem', 'ipsum', 'dolor', 'sit'][Math.floor(Math.random() * 4)];
+
+        (&lt;div>{
+            text1 + &#39; &#39; + text2
+        }&lt;/div>)
+    }&lt;/div>)
+}}&lt;/div></pre>
+
+        <h3>Take a look</h3>
+        <p class="codepen" data-theme-id="dark" data-default-tab="result,html" data-slug-hash="abNjBKw"></p>
+        <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+        <h2>Creating an array dynamically</h2>
+
+        <p>
+            A very good use case for this syntax is to dynamically generate a navigation bar based on a variable.
+            In this example, we're going to define a variable called <var>navigation</var> and generate a navigation bar from it.
+        </p>
+
+        <p>
+            To do this we need to define our header.
+            Inside the inline script syntax we're going to map the array and return a new element.
+            At the end it should look something like this:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;body>
+    &lt;header>{{
+        navigation.map(item => {
+            return (&lt;a>{ item }&lt;/a>)
+        })
+    }}&lt;/header>
+
+    &lt;script>
+        const navigation = ['Home', 'About', 'Pricing', 'Contact'];
+    &lt;/script>
+&lt;/body></pre>
+
+        
+    </div>
+</div>

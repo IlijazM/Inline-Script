@@ -1,7 +1,10 @@
+setTimeout(() => {
+    document.body.style.display = 'initial'
+    fadeIn()
+}, 1000)
+
+
 inlineScript()
 
-document.body.style.transition = 'opacity 200ms linear'
-
-setTimeout(() => {
-    document.body.style.opacity = 1
-}, 10)
+document.body.style.display = 'initial'
+fadeIn()

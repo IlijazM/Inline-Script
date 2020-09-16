@@ -1,21 +1,15 @@
 const productName = 'Inline-script.js'
 
-let preUrl = '/docs'
-if (document.location.host === "ilijazm.github.io") {
-    preUrl = '/Inline-Script'
-}
-
 const navigation = [
-    { url: preUrl + '/index.html', altUrl: '/', name: 'Home' },
-    { url: preUrl + '/showcase.html', name: 'Showcase' },
-    { url: preUrl + '/learn/', name: 'Learn' },
-    { url: preUrl + '/documentation.html', name: 'Documentation' },
+    { url: globalPath + '/', name: 'Home' },
+    { url: globalPath + '/Showcase', name: 'Showcase' },
+    { url: globalPath + '/Documentation', name: 'Documentation' },
 ]
 
-const learnPages = [
-    { url: preUrl + '/learn/', name: 'Introduction' },
-    { url: preUrl + '/learn/inline-script-syntax.html', name: 'Inline Script Syntax' },
-    { url: preUrl + '/learn/updating-an-element.html', name: 'Updating an element' },
-    { url: preUrl + '/learn/button-syntax.html', name: 'Button syntax' },
-    { url: preUrl + '/learn/html-syntax.html', name: 'HTML Syntax' },
+const documentationPages = [
+    { url: globalPath + '/Documentation/', name: 'Introduction' },
+    { url: globalPath + '/Documentation/Inline-Script-Syntax', name: 'Inline Script Syntax' },
+    { url: globalPath + '/Documentation/Updating-an-element', name: 'Updating an element' },
+    { url: globalPath + '/Documentation/Button-Syntax', name: 'Button syntax' },
+    { url: globalPath + '/Documentation/HTML-Syntax', name: 'HTML Syntax' },
 ]

@@ -326,9 +326,6 @@ function updateMacros(element) {
                 outerHTML = '<' + newTagName + outerHTML.substring(1 + tagName.length, outerHTML.length - tagName.length - 1) + newTagName + '>'
                 element.outerHTML = outerHTML
 
-                console.log(outerHTML)
-                console.log(document.querySelector('.' + uniqueClassName))
-
                 element = document.querySelector('.' + uniqueClassName)
                 element.classList.remove(uniqueClassName)
                 return element

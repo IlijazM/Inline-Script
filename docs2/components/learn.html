@@ -2,9 +2,9 @@
     <div class="learn">
         <nav>
             <ul>{{
-                documentationPages.map(item => {
+                learnPages.map(item => {
                     const className = document.location.pathname === item.url ? 'current' : ''
-                    return (<href to={{item.url}}><li><a class={{className}}>{ item.name }</a></li></href>)
+                    return (<li><a class={{className}} href={{item.url}}>{ item.name }</a></li>)
                 })
             }}</ul>
         </nav>
@@ -15,8 +15,8 @@
         </main>
 
         <main class="nav">{{
-            const entries = Object.entries(documentationPages)
-            let index = parseInt(entries.find(v => v[1].url === localPath)[0])
+            const entries = Object.entries(learnPages)
+            let index = parseInt(entries.find(v => v[1].url === document.location.pathname)[0])
 
             let previousPage = entries[index - 1]
             let nextPage = entries[index + 1]
@@ -47,6 +47,10 @@
 
             output;
         }}</main>
+
+        <div>{{
+            load(this, "../components/footer.html")
+        }}</div>
     </div>
 
     <script>
@@ -56,7 +60,7 @@
     <style scoped>
         nav {
             z-index: 5;
-            position: absolute;
+            position: fixed;
 
             top: 0;
 
