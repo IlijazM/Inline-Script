@@ -317,7 +317,7 @@ function updateMacros(element) {
             const html = el.innerHTML
 
             function renameHTMLTagName(element, newTagName) {
-                const uniqueClassName = '_' + Array(20).fill(0).map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join('')
+                const uniqueClassName = '_' + Array(10).fill(0).map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join('')
 
                 element.classList.add(uniqueClassName)
 
@@ -325,6 +325,9 @@ function updateMacros(element) {
 
                 outerHTML = '<' + newTagName + outerHTML.substring(1 + tagName.length, outerHTML.length - tagName.length - 1) + newTagName + '>'
                 element.outerHTML = outerHTML
+
+                console.log(outerHTML)
+                console.log(document.querySelector('.' + uniqueClassName))
 
                 element = document.querySelector('.' + uniqueClassName)
                 element.classList.remove(uniqueClassName)
@@ -527,17 +530,15 @@ function inlineScript(args) {
 
     if (args instanceof HTMLElement) {
         scan(args)
-        updateMacros(args)
         scopeAllStyles(args)
+        updateMacros(args)
         return args
     }
 
     if (typeof args === 'string') {
         let element = createElement(args)
-        updateMacros(element)
-        scopeAllStyles(element)
         scan(element)
-
+        scopeAllStyles(element)
         return element
     }
     //#endregion
