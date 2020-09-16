@@ -9,15 +9,31 @@
             }}</ul>
         </nav>
         <main>
-            <div>
+            <div id="content">
                 { html }
             </div>
         </main>
 
+        <div class="nav-right">{{
+            const h2 = outerScope.query('#content').queryAll('h2')
+
+            h2.map(el => {
+                el.id = el.html.replaceAll(' ', '-').toLowerCase()
+                return (<li>{
+                    this.onclick = function() {
+                        window.scrollTo({top: el.y - 200})
+                        el.addClass('mark')
+                        setTimeout(() => {
+                            el.removeClass('mark')
+                        }, 3000);
+                    }
+                    el.html
+                }</li>)
+            })
+        }}</div>
+
         <main class="nav">{{
             const entries = Object.entries(documentationPages)
-            console.log(localPath)
-            console.log(entries)
             let index = parseInt(entries.find(v => v[1].url === localPath)[0])
 
             let previousPage = entries[index - 1]
@@ -63,13 +79,28 @@
             top: 0;
 
             width: 250px;
-            box-shadow: 6px 0 6px rgba(0,0,0,.1);
             height: 100%;
 
             padding-top: 110px;
 
             background: whitesmoke;
             
+        }
+
+        nav::after {
+            content: '';
+
+            position: fixed;
+
+            top: 0;
+            left: 0;
+
+            width: 250px;
+            height: 100vh;
+
+            box-shadow: 6px 0 6px rgba(0,0,0,.1);
+
+            pointer-events: none;
         }
 
         nav ul {
@@ -142,6 +173,30 @@
             width: 100%;
         }
 
+        .nav-right {
+            position: absolute;
+
+            top: 120px;
+            right: 10px;
+
+            width: calc(100vw - 1400px);
+            max-width: 250px;
+
+            text-align: right;
+        }
+
+        .nav-right li {
+            list-style-type: none;
+
+            padding: 5px;
+
+            cursor: pointer;
+        }
+
+        .nav-right li:hover {
+            background: #ddd;
+        }
+
         main {
             transform: translateX(300px);
             width: calc(100vw - 400px);
@@ -162,6 +217,8 @@
         h2 {
             font-size: 20px;
             font-weight: 500;
+
+            transition: background 200ms linear;
         }
 
         p {
@@ -179,5 +236,8 @@
             padding: 0;
         }
 
+        .mark {
+            background: rgba(255, 208, 0, 0.7);
+        }
     </style>
 </div>

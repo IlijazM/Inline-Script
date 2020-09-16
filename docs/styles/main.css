@@ -1,17 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inconsolata:wght@200;300;400;500;600;700;800;900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
-.invisible {
-    position: fixed !important;
-    top: -9999999999vw !important;
-    left: -9999999999vh !important;
-    transform: translate(-9999999999vw, -9999999999vh) scale(0) !important;
-    display: none !important;
-    width: 0px !important;
-    height: 0px !important;
-    opacity: 0 !important;
+html {
+    scroll-behavior: smooth;
 }
 
-* {
+:root {
     --primary: #2a6bb6;
     --primary-hover: rgb(56, 139, 223);
 }

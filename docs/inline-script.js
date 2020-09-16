@@ -365,6 +365,7 @@ function inlineScript(args) {
         if (element.tagName !== 'BUTTON') {
             element.render = function () {
                 const scope = this
+                const outerScope = this.parentElement
 
                 try {
                     handleRenderResults(this, eval(this.inlineScript))
