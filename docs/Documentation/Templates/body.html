@@ -1,0 +1,203 @@
+<div>
+    <div load="{{globalPath}}/components/learn.html">
+        <h1>Templates</h1>
+
+        <h2>The problem</h2>
+
+        <p>
+            This on it's own is a very powerful tool to create responsive and reactive web apps.
+            However, as with pure html, this can sometimes still be very fiddly to work with.
+            Lets say you want to add a new script in your head tag but you already have like 20 pages.
+            The only way to do this is to manually go to every page and paste the script tag in the head.
+        </p>
+
+        <p>
+            This can be a very tedious task but there is a way to avoid that.
+            Let me introduce you to <var>template.js</var>.
+        </p>
+
+        <h2>Template js</h2>
+
+        <h2>Dependencies</h2>
+
+        <p>
+            With <b>template js</b> you no longer have to work with html boilerplates.
+        </p>
+
+        <p>
+            You first need to install the <a href="https://github.com/IlijazM/Inline-Script" target="_blank">template.js</a>.
+        </p>
+
+        <p>
+            You will also need <a href="https://nodejs.org/en/" target="_blank">nodejs</a>.
+        </p>
+
+        <h2>Setup</h2>
+
+        <p>
+            Then you need to create the following files in the same directory as <b>template.js</b>:
+        </p>
+
+        <ol>
+            <li><p>template.html</p></li>
+            <li><p>routes.json</p></li>
+            <li><p>generate.js</p></li>
+        </ol>
+
+        <h2>Defining the routes</h2>
+
+        <p>
+            The <b>routes.json</b> define the routes you want to have.
+            For example: <var>Home, About, Pricing, Contact</var>.
+            Simply return an array filled with objects.
+            Each object must have a <var>name</var> and an <var>url</var>.
+            It could also include the entry <var>subPaths</var> which is again an array filled with routes.
+        </p>
+
+        <p>
+            This should look something like this:
+        </p>
+
+<?prettify lang=json>
+<pre class="prettyprint">[
+    {
+        "name": "Home",
+        "url": ""
+    }, {
+        "name": "About",
+        "url": "/About",
+        "subPaths": [
+            {
+                "name": "About me",
+                "url": "/About/About-me"
+            }, {
+                "name": "About the company",
+                "url": "/About/About-the-company"
+            }, 
+        ]
+    }, {
+        "name": "Pricing",
+        "url": "/Pricing"
+    }, {
+        "name": "Contact",
+        "url": "/Contact"
+    }
+]</pre>
+
+        <p>
+            Make sure you use the <b>backslashes</b> exactly like in this example.
+        </p>
+
+        <p>
+            At the end you will get a directory called <var>docs</var> that should look like this:
+        </p>
+
+<pre class="prettyprint">
+docs
+├── About
+│   ├── About-me
+│   │    ├── body.html
+│   │    ├── head.html
+│   │    └── index.html
+│   └── About-the-company
+│        ├── body.html
+│        ├── head.html
+│        └── index.html
+├── Contact
+│   ├── body.html
+│   ├── head.html
+│   └── index.html
+├── Pricing
+│   ├── body.html
+│   ├── head.html
+│   └── index.html
+├── body.html
+├── head.html
+└── index.html
+</pre>
+
+        <h2>Creating a generate script</h2>
+
+        <p>
+            In your <b>generate.js</b> simply import <var>template.js</var> and call the function generate.
+            This function takes one parameter that will be explained in <b>Defining a template</b>.
+        </p>
+
+        <p>
+            Here is a example of how this should look like;
+        </p>
+
+<?prettify lang=javascript>
+<pre class="prettyprint">const template = require('./template')
+
+template.generate('/docs')
+</pre>
+
+        <p>
+            To run this script simply call <var>node generate.js</var>
+        </p>
+
+        <h2>Defining a template</h2>
+
+        <p>
+            The <b>template.html</b> is the file that will replace all <b>index.html</b> files
+            in the docs folder.
+
+            You can use the string <var>$localPath</var> and <var>$globalPath</var>
+            to point to different pages.
+            
+            The <var>$localPath</var> string will get replaced with the pathname
+            of the current location.
+            
+            The <var>$globalPath</var> however will get replaced with the pathname
+            the whole document.
+            
+            You can set this path by passing it as an argument in <var>template.generate()</var>.
+
+            This is useful to setup for example github pages. Then your <var>globalPath</var> should be your
+            repository name with a backslash at the start.
+
+            If you run a live server your <var>globalPath</var> should be <var>/docs</var>
+        </p>
+
+        <p>
+            Here is an example for a <var>template.html</var>:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;!DOCTYPE html>
+&lt;html lang="en">
+    &lt;head>
+        &lt;meta charset="UTF-8">
+        &lt;meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+        &lt;link href="$globalPath/styles/main.css" rel="stylesheet">
+    
+        &lt;script src="$globalPath/inline-script.js">&lt;/script>
+    
+        &lt;script src="https://ilijazm.github.io/burning-brackets-js/burning-brackets.min.js">&lt;/script>
+    
+        &lt;script src="$globalPath/scripts/app.js" defer>&lt;/script>
+        
+        &lt;!-- This will load the header -->
+        &lt;div load="$localPath/head.html">&lt;/div>
+    &lt;/head>
+    
+    &lt;body>
+        &lt;div load="$globalPath/components/header.html">&lt;/div>
+        
+        &lt;!-- This will load the body -->
+        &lt;div load="$localPath/body.html">&lt;/div>
+        
+        &lt;div load="$globalPath/components/footer.html">&lt;/div>
+    
+        &lt;script>
+            const globalPath = '$globalPath'
+            const localPath = '$localPath'
+        &lt;/script>
+    &lt;/body>
+&lt;/html></pre>
+
+
+    </div>
+</div>

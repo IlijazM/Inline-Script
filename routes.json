@@ -12,10 +12,6 @@
         "url": "/Documentation",
         "subPaths": [
             {
-                "name": "Introduction",
-                "url": "/Documentation/Introduction"
-            },
-            {
                 "name": "Inline Script Syntax",
                 "url": "/Documentation/Inline-Script-Syntax"
             },
@@ -30,6 +26,30 @@
             {
                 "name": "HTML Syntax",
                 "url": "/Documentation/HTML-Syntax"
+            },
+            {
+                "name": "Manipulating attributes",
+                "url": "/Documentation/Manipulating-attributes"
+            },
+            {
+                "name": "Loading files",
+                "url": "/Documentation/Loading-files"
+            },
+            {
+                "name": "Scope",
+                "url": "/Documentation/Scope"
+            },
+            {
+                "name": "Scoped CSS",
+                "url": "/Documentation/Scoped-css"
+            },
+            {
+                "name": "Macros",
+                "url": "/Documentation/Macros"
+            },
+            {
+                "name": "Templates",
+                "url": "/Documentation/Templates"
             }
         ]
     },

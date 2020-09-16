@@ -15,7 +15,8 @@
         </main>
 
         <div class="nav-right">{{
-            const h2 = outerScope.query('#content').queryAll('h2')
+            console.log(scope)
+            const h2 = this.parentElement.query('#content').queryAll('h2')
 
             h2.map(el => {
                 el.id = el.html.replaceAll(' ', '-').toLowerCase()

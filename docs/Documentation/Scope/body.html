@@ -1,0 +1,21 @@
+<div>
+    <div load="{{globalPath}}/components/learn.html">
+        <h1>Scope</h1>
+
+        <h2>Basics</h2>
+
+        <p>
+            The variable <var>scope</var> points at the outer element in another file.
+            You can use the variable to safely query select element that only appear in the current file.
+            You can access this variable using the inline script syntax.
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div>
+    &lt;h1>&lt/h1>
+    &lt;div>{{
+        scope.querySelect('h1').innerHTML = 'Hello, world'
+    }}&lt;/div>
+&lt;/div></pre>
+    </div>
+</div>

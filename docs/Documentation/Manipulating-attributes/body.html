@@ -1,0 +1,80 @@
+<div>
+    <div load="{{globalPath}}/components/learn.html">
+        <h1>Manipulating attributes</h1>
+
+        <h2>Basics</h2>
+
+        <p>
+            You can also use the inline script syntax in attributes.
+            To do this you simply nest your inline script syntax into two curly brackets {{ ... }}.
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;div class="color{{ Math.floor(Math.random() * 3) }}">
+    Random color
+&lt;/div>
+
+&lt;style>
+    .color0 { color: red; }
+    .color1 { color: blue; }
+    .color2 { color: green; }
+&lt;/style></pre>
+
+        <p>
+            Now whenever the <var>render</var> function is getting called,
+            the attributes will get updates as well.
+        </p>
+
+        <h2>Restrictions</h2>
+
+        <p>
+            Keep in mind that syntaxes like
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;p class={{item == currentItem ? 'active' : ''}}>{{ item }}&lt;/p></pre>
+
+        <p>may not work simply because this could get converted to junk:</p>
+
+        
+<?prettify lang=html>
+<pre class="prettyprint">&lt;p class="{{item inline-script-uid-0 has-inline-script" =="currentItem" ?="" 'active'="" :="" ''}}="">{{ item }}&lt;/p></pre>
+
+        <h2>Practical example</h2>
+
+        <p>
+            Let's say we want to generate a <var>nav</var> based on a variable called <var>navigation</var>.
+            The variable looks like this:
+        </p>
+
+<?prettify lang=javascript>
+<pre class="prettyprint">const navigation = [
+    'Home', 'About', 'Pricing', 'Contact'
+];</pre>
+
+        <p>We also have the variable <var>currentPage</var> which contains the current page we're currently on:</p>
+
+<?prettify lang=javascript>
+<pre class="prettyprint">let currentPage = 'About';</pre>
+
+        <p>
+            Let's loop through our array and return another array filled with <var>a</var>-tags.
+            But our goal is to highlight the current page.
+            We can define a variable called <var>className</var> to whether <var>'current'</var> or nothing
+            and set this to our element:
+        </p>
+
+<?prettify lang=html>
+<pre class="prettyprint">&lt;nav>{{
+    navigation.map(item => {
+        const className = item === currentPage ? 'current' : '';
+        return (&lt;a class={{className}}>{ item }&lt;/a>);
+    })
+}}&lt;/nav></pre>
+
+        <h3>Take a look</h3>
+        <p class="codepen" data-theme-id="dark" data-default-tab="result,html" data-slug-hash="VwaBqYw"></p>
+        <script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+    </div>
+</div>

@@ -71,6 +71,7 @@ function load(element, url, args) {
     const xmlHttp = new XMLHttpRequest()
     xmlHttp.onload = function () {
         with (args || {}) {
+            const scope = element
             let child
 
             try {
@@ -364,9 +365,6 @@ function inlineScript(args) {
     function setRenderFunction(element) {
         if (element.tagName !== 'BUTTON') {
             element.render = function () {
-                const scope = this
-                const outerScope = this.parentElement
-
                 try {
                     handleRenderResults(this, eval(this.inlineScript))
                 } catch (err) {
