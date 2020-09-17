@@ -343,7 +343,7 @@ function updateMacros(element) {
                 element.outerHTML = outerHTML
 
                 element = document.querySelector('.' + uniqueClassName)
-                element.classList.remove(uniqueClassName)
+                if (element !== undefined) element.classList.remove(uniqueClassName)
                 return element
             }
 
