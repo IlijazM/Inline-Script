@@ -394,7 +394,7 @@ function inlineScript(args) {
         }
     }
 
-    function staticallyRender() {
+    function staticallyRender(element) {
         try {
             handleRenderResults(element, eval(element.inlineScript))
         } catch (err) {
