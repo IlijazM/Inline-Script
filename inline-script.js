@@ -363,6 +363,11 @@ function updateMacros(element) {
 function inlineScript(args) {
     //#region Rendering
     function setRenderFunction(element) {
+        if (element.attributes.static !== undefined) {
+            staticallyRender(element)
+            return
+        }
+
         if (element.tagName !== 'BUTTON') {
             element.render = function () {
                 try {
@@ -387,6 +392,16 @@ function inlineScript(args) {
         element.onclick = function () {
             eval(this.inlineScript)
         }
+    }
+
+    function staticallyRender() {
+        try {
+            handleRenderResults(element, eval(element.inlineScript))
+        } catch (err) {
+            handleExceptionResult(element, err)
+        }
+
+        renderAttributes(element)
     }
     //#endregion
 
