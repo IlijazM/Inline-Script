@@ -141,7 +141,7 @@ function compileInlineScript(inlineScript) {
             '&lt;': '<',
         }
         Object.keys(replaceList).forEach((i) => {
-            html = html.replaceAll(i, replaceList[i])
+            html = html.split(i).join(replaceList[i])
         })
 
         return html
@@ -179,7 +179,7 @@ function compileInlineScript(inlineScript) {
         }
 
         if (inQuotes === "") {
-            if (c === "(" && find("<").replaceAll(" ", "").replaceAll("\n", "") === "(<") {
+            if (c === "(" && find("<").split(" ").join("").split("\n").join("") === "(<") {
                 htmlExpressionDepth++
 
                 if (htmlExpressionDepth === 1) {
@@ -192,7 +192,7 @@ function compileInlineScript(inlineScript) {
         }
 
         if (inQuotes === "") {
-            if (c === ">" && find(")").replaceAll(" ", "").replaceAll("\n", "") === ">)") {
+            if (c === ">" && find(")").split(" ").join("").split("\n").join("") === ">)") {
                 htmlExpressionDepth--
 
                 if (htmlExpressionDepth === 0) {
