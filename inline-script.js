@@ -53,11 +53,12 @@ function scopeStyles(element) {
 function scopeAllStyles() { scopeStyles(document) }
 //#endregion
 
-//#region Const vars
+//#region Vars
 const hasInlineScriptClassName = 'has-inline-script'
 const UIDPrefix = "inline-script-uid-"
 let InlineScriptUID = 0
 //#endregion
+
 
 //#region Functions
 function getRequest(url, res) {
@@ -116,7 +117,7 @@ Object.defineProperty(HTMLElement.prototype, 'inlineScript', {
     set: function (value) {
         if (this.inlineScript_ === undefined) {
             let inlineScript = value
-            inlineScript = compileInlineScript(inlineScript)
+            inlineScript = compileInlineScript_(inlineScript)
             this.inlineScript_ = inlineScript
             this.classList.add(hasInlineScriptClassName)
         }
@@ -131,10 +132,24 @@ Object.defineProperty(HTMLElement.prototype, 'inlineScriptAttributes', {
         this.inlineScriptAttributes_ = value
     }
 })
+
+Object.defineProperty(HTMLElement.prototype, 'uid', {
+    get: function () {
+        if (this.uid_ === undefined) {
+            const class_ = Array.from(this.classList).find(v => v.startsWith(UIDPrefix))
+            if (class_ === undefined) return undefined
+            this.uid_ = class_.substring(UIDPrefix.length)
+        }
+        return this.uid_
+    },
+    set: function (value) {
+        this.uid_ = value
+    }
+})
 //#endregion
 
 //#region Compiler
-function compileInlineScript(inlineScript) {
+function compileInlineScript_(inlineScript) {
     function reverseSanitation(html) {
         const replaceList = {
             '&gt;': '>',
@@ -363,7 +378,7 @@ function updateMacros(element) {
 function inlineScript(args) {
     //#region Rendering
     function setRenderFunction(element) {
-        if (element.attributes.static !== undefined) {
+        if (element.getAttribute('static') !== null) {
             staticallyRender(element)
             return
         }
@@ -450,6 +465,8 @@ function inlineScript(args) {
         // load
         const loadAttribute = element.attributes.load
         if (loadAttribute !== undefined) {
+            if (element.getAttribute('static') !== null) element.removeAttribute('load')
+
             scanChildren(element)
 
             let args = { html: element.children }
@@ -483,6 +500,7 @@ function inlineScript(args) {
             compileAttributes(element)
             setRenderFunction(element)
             element.render()
+            compiler.addElement(element, htmlSyntax)
         } else {
             compileAttributes(element)
             renderAttributes(element)
@@ -533,9 +551,14 @@ function inlineScript(args) {
         scopeAllStyles()
     })
 
+    let htmlSyntax = false
+
     if (args === undefined) {
         scan(document.body)
         scopeAllStyles(document.body)
+
+        compiler.appendScript()
+
         return document.body
     }
 
@@ -547,6 +570,7 @@ function inlineScript(args) {
     }
 
     if (typeof args === 'string') {
+        htmlSyntax = true
         let element = createElement(args)
         scan(element)
         scopeAllStyles(element)
@@ -554,3 +578,72 @@ function inlineScript(args) {
     }
     //#endregion
 }
+
+//#region Inline Script Compiler
+let compiler = {
+    addElement: () => { },
+    appendScript: () => { },
+}
+
+var inlineScriptCompile = false
+function compileInlineScript() {
+    setupCompiler()
+    inlineScript()
+}
+
+function setupCompiler() {
+    inlineScriptCompile = true
+    compiler = {
+        script: `if (inlineScriptCompile === false) {
+let el;
+render=(el, callback)=>{
+    el.render = function() {
+        try {
+            handleRenderResults(this, callback(this.inlineScript))
+        } catch (err) {
+            handleExceptionResult(this, err)
+        }
+        return this
+    }
+}
+`,
+
+        addElement: function (element, htmlSyntax) {
+            if (element.getAttribute('default-value') !== null) {
+                element.innerHTML = element.getAttribute('default-value')
+            }
+
+            if (element.getAttribute('hide') !== null) {
+                element.innerHTML = ''
+            }
+
+            if (htmlSyntax) {
+                return
+            }
+
+            this.script += 'el = document.querySelector(\'.' + UIDPrefix + element.uid + '\')\n'
+            this.script += 'el.inlineScript = `' + element.inlineScript.replace(/\\/gm, '\\\\').replace(/\`/gm, '\\`') + '`\n'
+            this.script += `render(el, (s) => (function(){return eval(s)}).call(el))\n`
+
+            if (element.getAttribute('dynamic') !== null) {
+                this.script += 'el.render()\n'
+            }
+
+            if (element.tag === 'BUTTON') {
+                this.script += 'el.onclick = function () { eval(this.inlineScript) }\n'
+            }
+        },
+
+        appendScript: function () {
+            setTimeout(() => {
+                this.script += '}'
+
+                const scriptElement = document.createElement('script')
+                scriptElement.innerHTML = this.script
+                document.body.appendChild(scriptElement)
+                document.body.setAttribute('finished-compiling', 'true')
+            }, 100)
+        }
+    }
+}
+//#endregion
