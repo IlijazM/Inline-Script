@@ -369,7 +369,9 @@ function updateMacros(element) {
         const elements = Array.from(document.querySelectorAll(macro))
 
         elements.forEach(el => {
-            convert(el, value)
+            try {
+                convert(el, value)
+            } catch (err) {}
         })
     }
 }
