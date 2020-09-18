@@ -343,7 +343,7 @@ function updateMacros(element) {
                 element.outerHTML = outerHTML
 
                 element = document.querySelector('.' + uniqueClassName)
-                if (element !== undefined) element.classList.remove(uniqueClassName)
+                element.classList.remove(uniqueClassName)
                 return element
             }
 
@@ -369,7 +369,11 @@ function updateMacros(element) {
         const elements = Array.from(document.querySelectorAll(macro))
 
         elements.forEach(el => {
-            convert(el, value)
+            try {
+                convert(el, value)
+            } catch (err) {
+
+            }
         })
     }
 }
