@@ -54,11 +54,12 @@ function scopeAllStyles() { scopeStyles(document) }
 //#endregion
 
 //#region Vars
+let calledInlineScript = false
+
 const hasInlineScriptClassName = 'has-inline-script'
 const UIDPrefix = "inline-script-uid-"
 let InlineScriptUID = 0
 //#endregion
-
 
 //#region Functions
 function getRequest(url, res) {
@@ -76,7 +77,12 @@ function load(element, url, args) {
             let child
 
             try {
-                child = eval('eval(eval(inlineScript).toString());inlineScript(this.responseText)')
+                try {
+                    static;
+                    child = eval('eval(eval(inlineScript).toString());inlineScript(this.responseText,{static:true})')
+                } catch (err) {
+                    child = eval('eval(eval(inlineScript).toString());inlineScript(this.responseText,{static:false})')
+                }
             } catch (err) {
                 // ERROR
                 child = document.createElement('div')
@@ -252,6 +258,7 @@ function newUID() { return InlineScriptUID++ }
 
 //#region Handlers
 function handleExceptionResult(element, err) {
+    console.error(err)
     element.style.background = 'red'
     element.style.color = 'yellow'
     element.style.fontSize = '20px'
@@ -358,7 +365,13 @@ function updateMacros(element) {
             })
 
             with (args) {
-                eval(inlineScript + 'inlineScript(el)')
+                try {
+                    static;
+                    eval(inlineScript + 'inlineScript(el,{static:true})')
+                } catch (err) {
+                    eval(inlineScript + 'inlineScript(el,{static:false})')
+                }
+
             }
         }
 
@@ -369,15 +382,13 @@ function updateMacros(element) {
         const elements = Array.from(document.querySelectorAll(macro))
 
         elements.forEach(el => {
-            try {
-                convert(el, value)
-            } catch (err) {}
+            convert(el, value)
         })
     }
 }
 //#endregion
 
-function inlineScript(args) {
+function inlineScript(args, params) {
     //#region Rendering
     function setRenderFunction(element) {
         if (element.getAttribute('static') !== null) {
@@ -423,7 +434,22 @@ function inlineScript(args) {
     //#endregion
 
     //#region Attributes
+    function handleAttribute(element) {
+        if (element.getAttribute('static') !== null) {
+            function setAllAttributes(element, attributeName, attributeValue) {
+                element.setAttribute(attributeName, attributeValue)
+                Array.from(element.children).forEach(el => {
+                    setAllAttributes(el, attributeName, attributeValue)
+                })
+            }
+
+            setAllAttributes(element, 'static', '')
+        }
+    }
+
     function compileAttributes(element) {
+        if (element.inlineScriptAttributes.length !== 0) return
+
         const attributes = Array.from(element.attributes)
         let inlineScriptAttributes = []
 
@@ -478,6 +504,10 @@ function inlineScript(args) {
                     args[v.name] = attributeStringToVariable(v.value)
             })
 
+            if (element.getAttribute('static') !== null) {
+                args.static = true
+            }
+
             load(element, loadAttribute.value, args)
         }
 
@@ -496,6 +526,7 @@ function inlineScript(args) {
             return
         }
         setUniqueClassName(element)
+        handleAttribute(element)
         if (hasInlineScript(element)) {
             element.inlineScript = element.innerHTML
 
@@ -505,8 +536,15 @@ function inlineScript(args) {
         } else {
             compileAttributes(element)
             renderAttributes(element)
+
+            element.render = function () {
+                renderAttributes(this)
+            }
+
             scanChildren(element)
         }
+
+        preRenderer.addElement(element)
     }
 
     function scanChildren(element) {
@@ -547,8 +585,17 @@ function inlineScript(args) {
     //#endregion
 
     //#region Execution
+    calledInlineScript = true
+
+    if (params === undefined) params = {}
+    params.static = params.static === true
+
     if (args === undefined) {
         setTimeout(() => {
+            try {
+                if (compiledInlineScript) compiledInlineScriptHandler()
+            } catch (e) { }
+
             scan(document.body)
             scopeAllStyles(document.body)
 
@@ -556,6 +603,10 @@ function inlineScript(args) {
                 updateMacros()
                 scopeAllStyles()
             })
+
+            setTimeout(() => {
+                preRenderer.appendScript()
+            }, 500);
         })
 
         return document.body
@@ -567,6 +618,8 @@ function inlineScript(args) {
     })
 
     if (args instanceof HTMLElement) {
+        if (params.static) args.setAttribute('static', '')
+
         scan(args)
         scopeAllStyles(args)
         updateMacros(args)
@@ -575,9 +628,63 @@ function inlineScript(args) {
 
     if (typeof args === 'string') {
         let element = createElement(args)
+        if (params.static) element.setAttribute('static', '')
         scan(element)
         scopeAllStyles(element)
         return element
     }
     //#endregion
 }
+
+//#region Pre-Renderer
+let preRenderer = {
+    script: `var compiledInlineScript = true
+if (calledInlineScript === false) {
+compiledInlineScript = true
+let el\n`,
+
+    addElement(element) {
+        if (element.inlineScript == '' && element.inlineScriptAttributes.length === 0) return
+        if (element.getAttribute('static') !== null) return
+
+        this.script += 'el = document.querySelector(\'.'
+            + Array.from(element.classList).find(v => v.startsWith(UIDPrefix))
+            + '\')\n'
+
+        if (element.inlineScript != '')
+            this.script += 'el.inlineScript = `' + element.inlineScript.replace(/\\/gm, '\\\\').replace(/\`/gm, '\\`') + '`\n'
+
+        if (element.inlineScriptAttributes.length !== 0) {
+            let inlineScriptAttributes = ''
+            inlineScriptAttributes += '[\n'
+            element.inlineScriptAttributes.forEach(item => {
+                inlineScriptAttributes += `{ name: '${item.name.replace(/\'/gm, '\\\'')}', value: '${item.value.replace(/\'/gm, '\\\'')}' },\n`
+            })
+            inlineScriptAttributes += ']\n'
+
+            this.script += 'el.inlineScriptAttributes = ' + inlineScriptAttributes
+        }
+
+        this.script += '\n'
+    },
+
+    appendScript: function () {
+        setTimeout(() => {
+            this.script += '}'
+
+            const scriptElement = document.createElement('script')
+            scriptElement.innerHTML = this.script
+            document.body.appendChild(scriptElement)
+            document.body.setAttribute('finished-compiling', 'true')
+        }, 100)
+    }
+}
+
+function compiledInlineScriptHandler() {
+    preRenderer = {
+        script: '',
+        addElement: () => { },
+        appendScript: () => { },
+    }
+}
+//#endregion
