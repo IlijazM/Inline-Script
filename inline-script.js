@@ -108,6 +108,15 @@ function load(element, url, args) {
 
     return ''
 }
+
+function escapeAll(string) {
+    return string
+        .split('\\').join('\\\\')
+        .split('$').join('\\$')
+        .split('\'').join('\\\'')
+        .split('\"').join('\\\"')
+        .split('\`').join('\\\`')
+}
 //#endregion
 
 //#region Custom properties
@@ -177,7 +186,10 @@ function compileInlineScript_(inlineScript) {
     let newInlineScript = ""
 
     for (let i = 0; i < inlineScript.length; i++) {
-        const c = inlineScript.substr(i, 1)
+        let c = inlineScript.substr(i, 1)
+        if (htmlExpressionDepth !== 0) {
+            c = escapeAll(escapeAll(c))
+        }
 
         function find(char) {
             const sub = inlineScript.substr(i)
@@ -226,6 +238,8 @@ function compileInlineScript_(inlineScript) {
 
         newInlineScript += c
     }
+
+    console.log(newInlineScript)
 
     return newInlineScript
 }
