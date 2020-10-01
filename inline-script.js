@@ -103,6 +103,7 @@ function load(element, url, args) {
                 handleExceptionResult(child, err)
             }
 
+            element.innerHTML = ''
             element.appendChild(child)
 
         }
@@ -366,7 +367,7 @@ function updateMacros(element) {
                 element.outerHTML = outerHTML
 
                 element = document.querySelector('.' + uniqueClassName)
-                element.classList.remove(uniqueClassName)
+                if (element != undefined) element.classList.remove(uniqueClassName)
                 return element
             }
 
@@ -601,7 +602,9 @@ function inlineScript(args, params) {
     //#endregion
 
     //#region Execution
-    calledInlineScript = true
+    setTimeout(() => {
+        calledInlineScript = true
+    })
 
     if (params === undefined) params = {}
     params.static = params.static === true
