@@ -61,7 +61,7 @@ const UIDPrefix = "inline-script-uid-"
 let InlineScriptUID = 0
 //#endregion
 
-//#region Functions
+//#region Load
 function getRequest(url, res) {
     const xmlHttp = new XMLHttpRequest()
     xmlHttp.onload = res(xmlHttp)
@@ -74,48 +74,43 @@ function load(element, url, args) {
     xmlHttp.onload = function () {
         with (args || {}) {
             const scope = element
-            let child
+
+            let isStatic = false
 
             try {
-                try {
-                    static;
-                    child = eval('eval(eval(inlineScript).toString());inlineScript(this.responseText,{static:true})')
-                } catch (err) {
-                    child = eval('eval(eval(inlineScript).toString());inlineScript(this.responseText,{static:false})')
-                }
+                static;
+                isStatic = true
+            } catch (err) { /* Is not static */ }
+
+
+            let child = createElement(this.responseText)
+
+            const scripts = child.querySelectorAll('script')
+            const scriptContents = []
+            scripts.forEach((script) => {
+                scriptContents.push(script.innerHTML)
+            })
+
+            scriptContents.push('eval(inlineScript + \'inlineScript(this.responseText,{static:' + isStatic + '})\')')
+
+            const joinedScripts = scriptContents.join('\n')
+
+            try {
+                child = eval(joinedScripts)
             } catch (err) {
                 // ERROR
                 child = document.createElement('div')
                 handleExceptionResult(child, err)
             }
 
-            element.innerHTML = ""
-            element.append(child)
+            element.appendChild(child)
 
-            const scripts = element.querySelectorAll("script")
-            scripts.forEach((script) => {
-                const scriptElement = document.createElement("script")
-                if (script.attributes.src !== undefined) scriptElement.setAttribute('src', script.attributes.src.value)
-                if (script.attributes.async !== undefined) scriptElement.setAttribute('async', script.attributes.async.value)
-                if (script.attributes.defer !== undefined) scriptElement.setAttribute('defer', script.attributes.defer.value)
-                scriptElement.innerHTML = script.innerHTML
-                document.head.appendChild(scriptElement)
-            })
         }
     }
     xmlHttp.open("GET", url, true)
     xmlHttp.send(null)
 
     return ''
-}
-
-function escapeAll(string) {
-    return string
-        .split('\\').join('\\\\')
-        .split('$').join('\\$')
-        .split('\'').join('\\\'')
-        .split('\"').join('\\\"')
-        .split('\`').join('\\\`')
 }
 //#endregion
 
@@ -239,8 +234,6 @@ function compileInlineScript_(inlineScript) {
         newInlineScript += c
     }
 
-    console.log(newInlineScript)
-
     return newInlineScript
 }
 //#endregion
@@ -261,9 +254,18 @@ function isDefineExpression(element) {
     return element.tagName === "DEFINE"
 }
 
+function escapeAll(string) {
+    return string
+        .split('\\').join('\\\\')
+        .split('$').join('\\$')
+        .split('\'').join('\\\'')
+        .split('\"').join('\\\"')
+        .split('\`').join('\\\`')
+}
+
 function createElement(html) {
     const parent = document.createElement("div")
-    parent.innerHTML = html
+    parent.innerHTML = '<div>' + html + '</div>'
     return parent.firstChild
 }
 
