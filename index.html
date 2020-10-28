@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
 
     <script src="inline-script.js"></script>
-</head>
-<body>
+  </head>
+  <body>
+    <div>{{ new Promise((resolve, reject) => { setTimeout(() => { resolve('Hello, world!') }, 1000) }) }}</div>
     <script>
-        document.location.href = 'https://IlijazM.github.io/Inline-Script-Website/'
+      inlineScript();
     </script>
-</body>
+  </body>
 </html>

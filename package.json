@@ -1,0 +1,27 @@
+{
+  "name": "inline-script",
+  "version": "1.0.0",
+  "description": "Inline-script.js is an easy to use, front-end framework that aims to improve your workflow by grouping code and html together.",
+  "main": "inline-script-old.js",
+  "scripts": {
+    "tsc": "tsc -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IlijazM/Inline-Script.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IlijazM/Inline-Script/issues"
+  },
+  "homepage": "https://github.com/IlijazM/Inline-Script#readme",
+  "dependencies": {
+    "typescript": "^4.0.5"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js"
+    ]
+  }
+}
