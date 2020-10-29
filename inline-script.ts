@@ -3,6 +3,13 @@
 interface HTMLElement {
   render(): void;
 
+  static: boolean;
+  ucn: number; // unique class name
+
+  getUniqueSelector(): string;
+
+  setStatic(): void;
+
   initialContent: { set: (value: string) => void; get: () => string };
   _initialContent: string;
 
@@ -19,6 +26,34 @@ interface HTMLElement {
  * Will render the element's inlineScript, handleBars, attributes, ...
  */
 HTMLElement.prototype.render = function () {};
+
+HTMLElement.prototype.setStatic = function () {
+  this.render = function () {};
+
+  this.inlineScript = undefined;
+  this.inlineScriptAttributes = undefined;
+};
+
+HTMLElement.prototype.getUniqueSelector = function (): string {
+  let uniqueSelector = '';
+  let parent = this;
+
+  while (parent.parentNode.tagName !== 'HTML') {
+    let count = 1;
+    let previous = parent;
+
+    while (previous.previousElementSibling !== null) {
+      count++;
+      previous = previous.previousElementSibling;
+    }
+
+    uniqueSelector = `>:nth-child(${count})` + uniqueSelector;
+    parent = parent.parentNode;
+  }
+
+  uniqueSelector = parent.tagName + uniqueSelector;
+  return uniqueSelector;
+};
 
 /**
  * The initial innerHTML of an element
@@ -56,9 +91,9 @@ HTMLElement.prototype.hasInlineScriptAttributes = function () {
 //#endregion
 
 //#region Variables
-const UNIQUE_CLASS_NAME_PREFIX = '--is-uid-';
+const UNIQUE_CLASS_NAME_PREFIX = '--is-ucn-';
 const CLASS_NAME = '--inline-script';
-var inlineScriptUniqueId = 0;
+var inlineScriptUCN = 0;
 
 const replaceList = {
   '\\&gt;': '>',
@@ -69,10 +104,98 @@ const replaceList = {
 //#region Functions
 
 function reverseSanitation(html: string): string {
-  for (const [regex, replacement] of Object.entries(replaceList))
+  for (const [regex, replacement] of (Object as any).entries(replaceList))
     html = html.replace(new RegExp(regex, 'gm'), replacement);
 
   return html;
+}
+
+function escapeAll(string: string): string {
+  return string
+    .replace(/\\/gm, '\\\\')
+    .replace(/\$/gm, '\\$')
+    .replace(/'/gm, "\\'")
+    .replace(/"/gm, '\\"')
+    .replace(/`/gm, '\\`');
+}
+
+function createElements(stringElement: string): HTMLCollection {
+  const parent = document.createElement('div');
+  parent.innerHTML = '<div>' + stringElement + '</div>';
+  return (parent.firstChild as HTMLElement).children;
+}
+//#endregion
+
+//#region HTML Syntax
+function compileHTMLSyntax(inlineScript: string, element: HTMLElement): string {
+  inlineScript = reverseSanitation(inlineScript);
+
+  let inQuotes = ''; // which quote got opened
+  let escapeQuotes = false; // if there is a escape character for quotes
+  let htmlExpressionDepth = 0; // the depth of the html expression
+
+  let newInlineScript = '';
+
+  for (let i = 0; i < inlineScript.length; i++) {
+    let c = inlineScript.substr(i, 1);
+    if (htmlExpressionDepth !== 0) {
+      c = escapeAll(escapeAll(c));
+    }
+
+    function find(char) {
+      const sub = inlineScript.substr(i);
+      const j = sub.indexOf(char);
+      return sub.substring(0, j + 1);
+    }
+
+    if (inQuotes === '') {
+      if (c === '"' || c === "'" || c === '`') {
+        inQuotes = c;
+      }
+    } else if (c === inQuotes && escapeQuotes === false) {
+      inQuotes = '';
+    }
+
+    escapeQuotes = false;
+
+    if (inQuotes !== '' && c === '\\') {
+      escapeQuotes = true;
+    }
+
+    if (inQuotes === '') {
+      if (c === '(' && find('<').split(' ').join('').split('\n').join('') === '(<') {
+        htmlExpressionDepth++;
+
+        if (htmlExpressionDepth === 1) {
+          let evalCode = '';
+          evalCode += 'eval(InlineScript+`';
+          evalCode += 'let parent=document.querySelector("' + element.getUniqueSelector() + '");';
+          evalCode += 'let scope=parent;';
+          evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
+          evalCode += 'new InlineScript().fromString(\\`<';
+          newInlineScript += evalCode;
+          i++;
+          continue;
+        }
+      }
+    }
+
+    if (inQuotes === '') {
+      if (c === '>' && find(')').split(' ').join('').split('\n').join('') === '>)') {
+        htmlExpressionDepth--;
+
+        if (htmlExpressionDepth === 0) {
+          newInlineScript += '>\\`)`)';
+          i++;
+          continue;
+        }
+      }
+    }
+
+    newInlineScript += c;
+  }
+
+  return newInlineScript;
 }
 //#endregion
 
@@ -95,14 +218,11 @@ function handleInlineScriptEvalResultHTMLElement(element: HTMLElement, result: H
   return true;
 }
 
-function isHTMLElementArray(result: Array<any>) {
-  return result.every((i) => i instanceof HTMLElement);
-}
-
 function handleInlineScriptEvalResultArray(element: HTMLElement, result: Array<any>): boolean {
   if (!(result instanceof Array)) return;
-  if (isHTMLElementArray(result)) result.forEach((child: HTMLElement) => element.append(child));
-  else element.innerHTML = result.join('');
+  result.forEach((child: any) => {
+    handleInlineScriptEvalResult(element, child);
+  });
   return true;
 }
 
@@ -119,15 +239,13 @@ function handleInlineScriptEvalResultPromise(element: HTMLElement, result: Promi
 }
 
 function handleInlineScriptEvalResult(element: HTMLElement, result: any) {
-  element.innerHTML = '';
-
   if (handleInlineScriptEvalResultUndefined(result)) return;
   if (handleInlineScriptEvalResultHTMLCollection(element, result)) return;
   if (handleInlineScriptEvalResultHTMLElement(element, result)) return;
   if (handleInlineScriptEvalResultArray(element, result)) return;
   if (handleInlineScriptEvalResultPromise(element, result)) return;
 
-  element.innerHTML = result.toString();
+  element.innerHTML += result.toString();
 
   return;
 }
@@ -144,13 +262,69 @@ function handleExceptionResult(element: HTMLElement, error: any) {
 //#endregion
 
 class InlineScript {
-  constructor() {}
+  constructor() {
+    this.setupReaction();
+  }
+
+  //#region Reaction
+  reactiveElements: Record<string, Array<HTMLElement>> = {};
+  oldValues: Record<string, any> = {};
+
+  setupReaction() {
+    setInterval(() => {
+      this.reaction();
+    }, 50);
+  }
+
+  reaction() {
+    console.log(this.reactiveElements);
+    for (const [varName, reactiveElements] of (Object as any).entries(this.reactiveElements)) {
+      const varValue = eval(varName);
+
+      if (this.oldValues[varName] !== varValue) {
+        this.oldValues[varName] = varValue;
+
+        for (const reactiveElement of reactiveElements) {
+          function remove() {
+            reactiveElements[varName] = reactiveElements.filter((element: HTMLElement) => element === reactiveElement);
+          }
+
+          if (reactiveElement.parentElement === null) remove();
+
+          try {
+            reactiveElement.render();
+          } catch (err) {
+            console.group('removed element');
+            console.error(err);
+            console.log(reactiveElement);
+            console.groupEnd();
+
+            remove();
+          }
+        }
+      }
+    }
+  }
+
+  addReaction(element: HTMLElement) {
+    const varName = element.getAttribute('reacts');
+
+    if (this.reactiveElements[varName] === undefined) this.reactiveElements[varName] = [];
+    this.reactiveElements[varName].push(element);
+  }
+
+  hasReaction(element: HTMLElement): boolean {
+    return element.hasAttribute('reacts');
+  }
+  //#endregion
 
   //#region Rendering
   setRenderFunction(element: HTMLElement) {
     element.render = function () {
+      if (element.static) return;
       if (element.hasInlineScript()) {
         try {
+          element.innerHTML = '';
           handleInlineScriptEvalResult(element, eval(element.inlineScript));
         } catch (err) {
           handleExceptionResult(element, err);
@@ -163,7 +337,7 @@ class InlineScript {
   //#region Inline script
   compileInlineScript(element: HTMLElement) {
     if (!this.isInlineScript(element)) return;
-    element.setInlineScript(reverseSanitation(element.innerHTML));
+    element.setInlineScript(compileHTMLSyntax(element.innerHTML, element));
   }
 
   isInlineScript(element: HTMLElement): boolean {
@@ -176,6 +350,10 @@ class InlineScript {
 
   renderAttributes(element: HTMLElement) {}
 
+  handleAttributes(element: HTMLElement) {
+    element.hasAttribute('static') && element.setStatic();
+    this.hasReaction(element) && this.addReaction(element);
+  }
   /**
    * Reads the first attribute of an element
    *
@@ -194,8 +372,8 @@ class InlineScript {
    * @returns if the tagname of the element is a special case
    */
   compileTagName(element: HTMLElement) {
-    if (this.isMacro(element)) return this.handleMacro(element);
-    if (this.isFunction(element)) return this.handleFunction(element);
+    if (this.isMacro(element)) return this.compileMacro(element);
+    if (this.isFunction(element)) return this.compileFunction(element);
   }
   //#endregion
 
@@ -204,7 +382,7 @@ class InlineScript {
     return element.tagName === 'define';
   }
 
-  handleMacro(element: HTMLElement) {}
+  compileMacro(element: HTMLElement) {}
   //#endregion
 
   //#region Functions
@@ -212,7 +390,7 @@ class InlineScript {
     return element.tagName === 'function';
   }
 
-  handleFunction(element: HTMLElement) {}
+  compileFunction(element: HTMLElement) {}
   //#endregion
 
   //#region General
@@ -220,12 +398,14 @@ class InlineScript {
     return element.hasInlineScript() || element.hasInlineScriptAttributes();
   }
 
-  setClassName(element: HTMLElement) {
-    element.classList.add(CLASS_NAME);
+  setUniqueClassName(element: HTMLElement) {
+    if (element.classList.contains(CLASS_NAME)) return;
+    element.ucn = inlineScriptUCN++;
+    element.classList.add(UNIQUE_CLASS_NAME_PREFIX + element.ucn);
   }
 
-  setUniqueClassName(element: HTMLElement) {
-    element.classList.add(UNIQUE_CLASS_NAME_PREFIX + inlineScriptUniqueId++);
+  setClassName(element: HTMLElement) {
+    element.classList.add(CLASS_NAME);
   }
 
   /**
@@ -242,9 +422,16 @@ class InlineScript {
    */
   setup(element: HTMLElement) {
     if (!this.hasInlineScript(element)) return;
-    this.setClassName(element);
     this.setUniqueClassName(element);
+    this.setClassName(element);
     this.setRenderFunction(element);
+  }
+
+  /**
+   * Will handle additional attributes after the element got rendered
+   */
+  handle(element: HTMLElement) {
+    this.handleAttributes(element);
   }
   //#endregion
 
@@ -259,13 +446,24 @@ class InlineScript {
   scan(element: HTMLElement, recursive: boolean = true) {
     this.compile(element);
     this.setup(element);
+
     element.render();
 
-    if (recursive) this.scanAll(element.children);
+    this.handle(element);
+
+    if (recursive && !element.hasInlineScript()) this.scanAll(element.children);
   }
 
   scanAll(elements: HTMLCollection) {
     for (const element of elements) this.scan(element as HTMLElement);
+  }
+  //#endregion
+
+  //#region From string
+  fromString(stringElement: string) {
+    const elements = createElements(stringElement);
+    for (const element of elements) this.scan(element as HTMLElement);
+    return elements;
   }
   //#endregion
 }

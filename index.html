@@ -8,7 +8,20 @@
     <script src="inline-script.js"></script>
   </head>
   <body>
-    <div>{{ new Promise((resolve, reject) => { setTimeout(() => { resolve('Hello, world!') }, 1000) }) }}</div>
+
+    <div>{{
+      let counter = 0
+
+      (<h1 reacts="counter">{{ counter }}</h1>
+      <button>{{
+        this.onclick = function() {
+          counter++;
+        }
+
+        'CLICK ME'
+      }}</button>)
+    }}</div>
+
     <script>
       inlineScript();
     </script>

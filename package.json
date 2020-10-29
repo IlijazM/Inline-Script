@@ -4,7 +4,8 @@
   "description": "Inline-script.js is an easy to use, front-end framework that aims to improve your workflow by grouping code and html together.",
   "main": "inline-script-old.js",
   "scripts": {
-    "tsc": "tsc -w"
+    "tsc": "tsc -w",
+    "minify": "node minify"
   },
   "repository": {
     "type": "git",
@@ -17,6 +18,7 @@
   },
   "homepage": "https://github.com/IlijazM/Inline-Script#readme",
   "dependencies": {
+    "minify": "^6.0.0",
     "typescript": "^4.0.5"
   },
   "jest": {
