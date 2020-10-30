@@ -4,11 +4,17 @@ interface HTMLElement {
   render(): void;
 
   static: boolean;
-  ucn: number; // unique class name
 
-  getUniqueSelector(): string;
+  /**
+   * ucn = Unique Class Name
+   */
+  setUcn(): void;
+  removeUcn(): void;
+  ucn: number;
 
   setStatic(): void;
+
+  inlineScriptSrc: string; // The content of the src attribute
 
   initialContent: { set: (value: string) => void; get: () => string };
   _initialContent: string;
@@ -23,36 +29,39 @@ interface HTMLElement {
 }
 
 /**
- * Will render the element's inlineScript, handleBars, attributes, ...
+ * 
+  setUniqueClassName(element: HTMLElement) {
+    if (element.classList.contains(CLASS_NAME)) return;
+    element.ucn = inlineScriptUCN++;
+    element.classList.add(UNIQUE_CLASS_NAME_PREFIX + element.ucn);
+  }
+
+  setClassName(element: HTMLElement) {
+    element.classList.add(CLASS_NAME);
+  }
  */
-HTMLElement.prototype.render = function () {};
+
+HTMLElement.prototype.setUcn = function () {
+  if (this.classList.contains(CLASS_NAME)) return;
+  this.classList.add(CLASS_NAME);
+
+  this.ucn = inlineScriptUCN++;
+  this.classList.add(UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+};
+
+HTMLElement.prototype.removeUcn = function () {
+  this.classList.remove(CLASS_NAME);
+  this.classList.remove(UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+};
 
 HTMLElement.prototype.setStatic = function () {
+  this.render();
+
   this.render = function () {};
+  this.removeUcn();
 
   this.inlineScript = undefined;
   this.inlineScriptAttributes = undefined;
-};
-
-HTMLElement.prototype.getUniqueSelector = function (): string {
-  let uniqueSelector = '';
-  let parent = this;
-
-  while (parent.parentNode.tagName !== 'HTML') {
-    let count = 1;
-    let previous = parent;
-
-    while (previous.previousElementSibling !== null) {
-      count++;
-      previous = previous.previousElementSibling;
-    }
-
-    uniqueSelector = `>:nth-child(${count})` + uniqueSelector;
-    parent = parent.parentNode;
-  }
-
-  uniqueSelector = parent.tagName + uniqueSelector;
-  return uniqueSelector;
 };
 
 /**
@@ -71,7 +80,9 @@ HTMLElement.prototype.initialContent = {
  * The inlineScript
  */
 HTMLElement.prototype.setInlineScript = function (value: string) {
-  if (this.inlineScript === undefined) this.inlineScript = value;
+  if (this.inlineScript !== undefined) return;
+
+  this.inlineScript = value;
 };
 
 HTMLElement.prototype.hasInlineScript = function () {
@@ -82,7 +93,9 @@ HTMLElement.prototype.hasInlineScript = function () {
  * A list of all attributes including inline script syntax
  */
 HTMLElement.prototype.setInlineScriptAttributes = function (value: Array<NamedNodeMap>) {
-  if (this.inlineScriptAttributes === undefined) this.inlineScriptAttributes = value;
+  if (this.inlineScriptAttributes !== undefined) return;
+
+  this.inlineScriptAttributes = value;
 };
 
 HTMLElement.prototype.hasInlineScriptAttributes = function () {
@@ -99,9 +112,19 @@ const replaceList = {
   '\\&gt;': '>',
   '\\&lt;': '<',
 };
+
+const tagNamesUsingSrc = ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'];
+const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
 //#endregion
 
 //#region Functions
+
+//#region Load content
+async function loadContentFromUrl(url: string) {
+  const res = await fetch(url);
+  return res;
+}
+//#endregion
 
 function reverseSanitation(html: string): string {
   for (const [regex, replacement] of (Object as any).entries(replaceList))
@@ -126,7 +149,80 @@ function createElements(stringElement: string): HTMLCollection {
 }
 //#endregion
 
+//#region Scoped CSS
+const CSSCommentsRegex = /\/\*([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*\/+/g;
+function removeAllCssComments(css: string): string {
+  return css.replace(CSSCommentsRegex, '');
+}
+
+function scope(scope: string, css: string) {
+  css = removeAllCssComments(css);
+
+  const regex = /([^\r\n,{}]+)(,(?=[^}]*{)|\s*{)/g;
+  let m: RegExpMatchArray;
+
+  while ((m = regex.exec(css)) !== null) {
+    if (m.index === regex.lastIndex) regex.lastIndex++;
+
+    let match = m[0].trim();
+    const index = m.index;
+
+    if (
+      !match.startsWith('@') &&
+      !match.startsWith('from') &&
+      !match.startsWith('to') &&
+      !/[\d]/.test(match.substr(0, 1))
+    ) {
+      let end = css.substr(index).trim();
+      if (end.startsWith('#this')) end = end.substr(6);
+      css = css.substring(0, index) + scope + ' ' + end;
+      regex.lastIndex += scope.length + 1;
+    }
+  }
+
+  return css;
+}
+
+let scopedCSSId = 0;
+function getUniqueStyleClassName() {
+  return 'scoped-css-id-' + scopedCSSId++;
+}
+
+function getScopedStyleElements(parent: HTMLElement): Array<HTMLElement> {
+  return Array.from(parent.querySelectorAll('style[scoped]'));
+}
+
+function scopeStyle(element: HTMLElement) {
+  const uniqueStyleClassName = getUniqueStyleClassName();
+  // sets a unique class name to the element's parent
+  element.parentElement.classList.add(uniqueStyleClassName);
+
+  element.innerHTML = scope('.' + uniqueStyleClassName, element.innerHTML);
+  element.removeAttribute('scoped');
+}
+
+function scopeStyles(parent: HTMLElement) {
+  let styles = getScopedStyleElements(parent);
+
+  styles.forEach(scopeStyle);
+
+  styles = Array.from(parent.querySelectorAll('style[scope]'));
+}
+
+function scopeAllStyles() {
+  scopeStyles(document.querySelector('html'));
+}
+//#endregion
+
 //#region HTML Syntax
+function generateEvalPreCode(element: HTMLElement): string {
+  let evalCode = '';
+  evalCode += 'let parent=document.querySelector(".' + UNIQUE_CLASS_NAME_PREFIX + element.ucn + '");';
+  evalCode += 'let scope=parent;';
+  evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
+  return evalCode;
+}
+
 function compileHTMLSyntax(inlineScript: string, element: HTMLElement): string {
   inlineScript = reverseSanitation(inlineScript);
 
@@ -169,9 +265,7 @@ function compileHTMLSyntax(inlineScript: string, element: HTMLElement): string {
         if (htmlExpressionDepth === 1) {
           let evalCode = '';
           evalCode += 'eval(InlineScript+`';
-          evalCode += 'let parent=document.querySelector("' + element.getUniqueSelector() + '");';
-          evalCode += 'let scope=parent;';
-          evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
+          evalCode += generateEvalPreCode(element);
           evalCode += 'new InlineScript().fromString(\\`<';
           newInlineScript += evalCode;
           i++;
@@ -209,12 +303,14 @@ function handleInlineScriptEvalResultUndefined(result: any): boolean {
 function handleInlineScriptEvalResultHTMLCollection(element: HTMLElement, result: HTMLCollection): boolean {
   if (!(result instanceof HTMLCollection)) return;
   Array.from(result).forEach((child) => element.append(child));
+  scopeStyles(element);
   return true;
 }
 
 function handleInlineScriptEvalResultHTMLElement(element: HTMLElement, result: HTMLElement): boolean {
   if (!(result instanceof HTMLElement)) return;
   element.append(result);
+  scopeStyles(element);
   return true;
 }
 
@@ -238,7 +334,9 @@ function handleInlineScriptEvalResultPromise(element: HTMLElement, result: Promi
   return true;
 }
 
-function handleInlineScriptEvalResult(element: HTMLElement, result: any) {
+function handleInlineScriptEvalResult(element: HTMLElement, result: any, clear: boolean = false) {
+  if (clear) element.innerHTML = '';
+
   if (handleInlineScriptEvalResultUndefined(result)) return;
   if (handleInlineScriptEvalResultHTMLCollection(element, result)) return;
   if (handleInlineScriptEvalResultHTMLElement(element, result)) return;
@@ -277,7 +375,6 @@ class InlineScript {
   }
 
   reaction() {
-    console.log(this.reactiveElements);
     for (const [varName, reactiveElements] of (Object as any).entries(this.reactiveElements)) {
       const varValue = eval(varName);
 
@@ -320,15 +417,33 @@ class InlineScript {
 
   //#region Rendering
   setRenderFunction(element: HTMLElement) {
+    const that = this;
     element.render = function () {
       if (element.static) return;
       if (element.hasInlineScript()) {
         try {
-          element.innerHTML = '';
-          handleInlineScriptEvalResult(element, eval(element.inlineScript));
+          handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
         } catch (err) {
           handleExceptionResult(element, err);
         }
+      }
+      if (element.inlineScriptSrc !== undefined) {
+        loadContentFromUrl(element.inlineScriptSrc).then(async (res) => {
+          const content = await res.text();
+          handleInlineScriptEvalResult(
+            element,
+            eval(InlineScript + generateEvalPreCode(element) + 'new InlineScript().fromString(`' + content + '`);'),
+            true
+          );
+        });
+        /**
+         * let evalCode = '';
+          evalCode += 'eval(InlineScript+`';
+          evalCode += 'let parent=document.querySelector("' + element.getUniqueSelector() + '");';
+          evalCode += 'let scope=parent;';
+          evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
+          evalCode += 'new InlineScript().fromString(\\`<';
+         */
       }
     };
   }
@@ -337,6 +452,7 @@ class InlineScript {
   //#region Inline script
   compileInlineScript(element: HTMLElement) {
     if (!this.isInlineScript(element)) return;
+    element.setUcn();
     element.setInlineScript(compileHTMLSyntax(element.innerHTML, element));
   }
 
@@ -353,6 +469,7 @@ class InlineScript {
   handleAttributes(element: HTMLElement) {
     element.hasAttribute('static') && element.setStatic();
     this.hasReaction(element) && this.addReaction(element);
+    this.hasValidSrcAttribute(element) && this.handleSrcAttribute(element);
   }
   /**
    * Reads the first attribute of an element
@@ -366,12 +483,36 @@ class InlineScript {
   }
   //#endregion
 
+  //#region Src attribute
+  /**
+   * Checks if the element has a src attribute and ignores tag names that
+   * already use this attribute for other purposes.
+   */
+  hasValidSrcAttribute(element: HTMLElement): boolean {
+    return element.hasAttribute('src') && !tagNamesUsingSrc.includes(element.tagName);
+  }
+
+  handleSrcAttribute(element: HTMLElement) {
+    const src = element.getAttribute('src');
+    element.inlineScriptSrc = src;
+  }
+  //#endregion
+
+  /**
+   * Filters all tagNames that inlineScript should ignore e.g. script, style, ...
+   */
+  ignoreDueToTagName(element: HTMLElement): boolean {
+    return ignoredTagNameList.includes(element.tagName);
+  }
+
   //#region Check tagname
   /**
-   * @param element html element
-   * @returns if the tagname of the element is a special case
+   * Checks the tagName of an element and handles it.
+   *
+   * @returns true, if the scan process should stop
    */
-  compileTagName(element: HTMLElement) {
+  checkTagName(element: HTMLElement): boolean {
+    if (this.ignoreDueToTagName(element)) return true;
     if (this.isMacro(element)) return this.compileMacro(element);
     if (this.isFunction(element)) return this.compileFunction(element);
   }
@@ -382,7 +523,9 @@ class InlineScript {
     return element.tagName === 'define';
   }
 
-  compileMacro(element: HTMLElement) {}
+  compileMacro(element: HTMLElement): boolean {
+    return true;
+  }
   //#endregion
 
   //#region Functions
@@ -390,53 +533,12 @@ class InlineScript {
     return element.tagName === 'function';
   }
 
-  compileFunction(element: HTMLElement) {}
-  //#endregion
-
-  //#region General
-  hasInlineScript(element: HTMLElement): boolean {
-    return element.hasInlineScript() || element.hasInlineScriptAttributes();
-  }
-
-  setUniqueClassName(element: HTMLElement) {
-    if (element.classList.contains(CLASS_NAME)) return;
-    element.ucn = inlineScriptUCN++;
-    element.classList.add(UNIQUE_CLASS_NAME_PREFIX + element.ucn);
-  }
-
-  setClassName(element: HTMLElement) {
-    element.classList.add(CLASS_NAME);
-  }
-
-  /**
-   * Calls the compiling function on all cases of an element
-   */
-  compile(element: HTMLElement) {
-    this.compileAttributes(element);
-    this.compileTagName(element);
-    this.compileInlineScript(element);
-  }
-
-  /**
-   * Sets the rendering function and unique name
-   */
-  setup(element: HTMLElement) {
-    if (!this.hasInlineScript(element)) return;
-    this.setUniqueClassName(element);
-    this.setClassName(element);
-    this.setRenderFunction(element);
-  }
-
-  /**
-   * Will handle additional attributes after the element got rendered
-   */
-  handle(element: HTMLElement) {
-    this.handleAttributes(element);
+  compileFunction(element: HTMLElement): boolean {
+    return true;
   }
   //#endregion
 
   //#region Scan
-
   /**
    * Will scan a html element
    *
@@ -444,16 +546,21 @@ class InlineScript {
    * @param recursive if true the child elements will get scanned as well
    */
   scan(element: HTMLElement, recursive: boolean = true) {
-    this.compile(element);
-    this.setup(element);
+    if (this.checkTagName(element)) return;
+
+    this.compileAttributes(element);
+    this.compileInlineScript(element);
+    this.setRenderFunction(element);
+    this.handleAttributes(element);
 
     element.render();
-
-    this.handle(element);
 
     if (recursive && !element.hasInlineScript()) this.scanAll(element.children);
   }
 
+  /**
+   * Runs the scan function on all html elements
+   */
   scanAll(elements: HTMLCollection) {
     for (const element of elements) this.scan(element as HTMLElement);
   }
@@ -474,4 +581,5 @@ class InlineScript {
 function inlineScript() {
   const inlineScript = new InlineScript();
   inlineScript.scan(document.body);
+  scopeAllStyles();
 }

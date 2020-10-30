@@ -9,18 +9,20 @@
   </head>
   <body>
 
-    <div>{{
-      let counter = 0
+    <h1>Test:</h1>
 
-      (<h1 reacts="counter">{{ counter }}</h1>
+    <state>{{
+      const foo = 'foo';
+
+      (<div src="load.html"></div>
       <button>{{
         this.onclick = function() {
-          counter++;
+          state.render()
         }
 
-        'CLICK ME'
+        'CLICK ME!'
       }}</button>)
-    }}</div>
+    }}</state>
 
     <script>
       inlineScript();
