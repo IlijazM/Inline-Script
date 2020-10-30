@@ -8,16 +8,17 @@
     <script src="inline-script.js"></script>
   </head>
   <body>
+    <preload src="load.html"></preload>
 
     <h1>Test:</h1>
 
     <state>{{
       const foo = 'foo';
 
-      (<div src="load.html"></div>
+      (<div></div>
       <button>{{
         this.onclick = function() {
-          state.render()
+          load(scope.querySelector('div'), 'load.html')
         }
 
         'CLICK ME!'

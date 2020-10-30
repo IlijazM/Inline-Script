@@ -115,13 +115,25 @@ const replaceList = {
 
 const tagNamesUsingSrc = ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'];
 const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
+
+let srcCache = {};
 //#endregion
 
 //#region Functions
 
 //#region Load content
-async function loadContentFromUrl(url: string) {
-  const res = await fetch(url);
+function load(element: HTMLElement, url: string): void {
+  element.inlineScriptSrc = url;
+  element.render();
+}
+
+async function loadFromUrl(url: string): Promise<string> {
+  let res: string;
+
+  if (srcCache[url] === undefined) res = await (await fetch(url)).text();
+  else res = srcCache[url];
+  srcCache[url] = res;
+
   return res;
 }
 //#endregion
@@ -428,8 +440,7 @@ class InlineScript {
         }
       }
       if (element.inlineScriptSrc !== undefined) {
-        loadContentFromUrl(element.inlineScriptSrc).then(async (res) => {
-          const content = await res.text();
+        loadFromUrl(element.inlineScriptSrc).then(async (content: string) => {
           handleInlineScriptEvalResult(
             element,
             eval(InlineScript + generateEvalPreCode(element) + 'new InlineScript().fromString(`' + content + '`);'),
@@ -498,6 +509,9 @@ class InlineScript {
   }
   //#endregion
 
+  //#region Tag names
+
+  //#region Check tagname
   /**
    * Filters all tagNames that inlineScript should ignore e.g. script, style, ...
    */
@@ -505,7 +519,6 @@ class InlineScript {
     return ignoredTagNameList.includes(element.tagName);
   }
 
-  //#region Check tagname
   /**
    * Checks the tagName of an element and handles it.
    *
@@ -515,12 +528,13 @@ class InlineScript {
     if (this.ignoreDueToTagName(element)) return true;
     if (this.isMacro(element)) return this.compileMacro(element);
     if (this.isFunction(element)) return this.compileFunction(element);
+    if (this.isPreLoad(element)) return this.preLoad(element);
   }
   //#endregion
 
   //#region Macros
   isMacro(element: HTMLElement): boolean {
-    return element.tagName === 'define';
+    return element.tagName === 'DEFINE';
   }
 
   compileMacro(element: HTMLElement): boolean {
@@ -530,12 +544,30 @@ class InlineScript {
 
   //#region Functions
   isFunction(element: HTMLElement): boolean {
-    return element.tagName === 'function';
+    return element.tagName === 'FUNCTION';
   }
 
   compileFunction(element: HTMLElement): boolean {
     return true;
   }
+  //#endregion
+
+  //#region Preload
+  isPreLoad(element: HTMLElement): boolean {
+    return element.tagName === 'PRELOAD';
+  }
+
+  preLoad(element: HTMLElement): boolean {
+    if (!element.hasAttribute('src')) return true;
+
+    const src = element.getAttribute('src');
+    loadFromUrl(src);
+
+    element.style.display = 'none';
+
+    return true;
+  }
+  //#endregion
   //#endregion
 
   //#region Scan

@@ -59,9 +59,19 @@ const replaceList = {
 };
 const tagNamesUsingSrc = ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'];
 const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
-function loadContentFromUrl(url) {
+let srcCache = {};
+function load(element, url) {
+    element.inlineScriptSrc = url;
+    element.render();
+}
+function loadFromUrl(url) {
     return __awaiter(this, void 0, void 0, function* () {
-        const res = yield fetch(url);
+        let res;
+        if (srcCache[url] === undefined)
+            res = yield (yield fetch(url)).text();
+        else
+            res = srcCache[url];
+        srcCache[url] = res;
         return res;
     });
 }
@@ -312,8 +322,7 @@ class InlineScript {
                 }
             }
             if (element.inlineScriptSrc !== undefined) {
-                loadContentFromUrl(element.inlineScriptSrc).then((res) => __awaiter(this, void 0, void 0, function* () {
-                    const content = yield res.text();
+                loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
                     handleInlineScriptEvalResult(element, eval(InlineScript + generateEvalPreCode(element) + 'new InlineScript().fromString(`' + content + '`);'), true);
                 }));
             }
@@ -358,17 +367,30 @@ class InlineScript {
             return this.compileMacro(element);
         if (this.isFunction(element))
             return this.compileFunction(element);
+        if (this.isPreLoad(element))
+            return this.preLoad(element);
     }
     isMacro(element) {
-        return element.tagName === 'define';
+        return element.tagName === 'DEFINE';
     }
     compileMacro(element) {
         return true;
     }
     isFunction(element) {
-        return element.tagName === 'function';
+        return element.tagName === 'FUNCTION';
     }
     compileFunction(element) {
+        return true;
+    }
+    isPreLoad(element) {
+        return element.tagName === 'PRELOAD';
+    }
+    preLoad(element) {
+        if (!element.hasAttribute('src'))
+            return true;
+        const src = element.getAttribute('src');
+        loadFromUrl(src);
+        element.style.display = 'none';
         return true;
     }
     scan(element, recursive = true) {
