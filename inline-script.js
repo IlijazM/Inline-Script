@@ -328,46 +328,51 @@ class InlineScript {
         element.render = function (calledAutomatically = false) {
             if (element.static)
                 return;
-            if (element.functionName !== undefined || element.inlineScriptSrc !== undefined) {
-                const virtualElement = document.createElement('div');
-                try {
-                    handleInlineScriptEvalResult(virtualElement, eval(element.inlineScript), true);
+            const first = () => {
+                if (element.fixedHTML)
+                    return that.handleInnerHTMLAttribute(element);
+                if (element.functionName !== undefined || element.inlineScriptSrc !== undefined) {
+                    const virtualElement = document.createElement('div');
+                    try {
+                        handleInlineScriptEvalResult(virtualElement, eval(element.inlineScript), true);
+                    }
+                    catch (err) {
+                        handleExceptionResult(virtualElement, err);
+                    }
+                    newVars.innerHTML = virtualElement.innerHTML;
+                    newVars.args = getAttributesFormElementAsArray(this);
                 }
-                catch (err) {
-                    handleExceptionResult(virtualElement, err);
-                }
-                newVars.innerHTML = virtualElement.innerHTML;
-                newVars.args = getAttributesFormElementAsArray(this);
-            }
-            if (element.functionName !== undefined) {
-                const innerHTML = newVars.innerHTML;
-                const args = newVars.args;
-                element.innerHTML = functions[element.functionName];
-                eval(InlineScript + 'new InlineScript().scanAll(element.children)');
-                return;
-            }
-            if (element.hasInlineScript()) {
-                try {
-                    handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
-                }
-                catch (err) {
-                    handleExceptionResult(element, err);
-                }
-                return;
-            }
-            if (element.inlineScriptSrc !== undefined) {
-                return loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
+                if (element.functionName !== undefined) {
                     const innerHTML = newVars.innerHTML;
                     const args = newVars.args;
-                    handleInlineScriptEvalResult(element, eval(InlineScript +
-                        generateEvalPreCode(element) +
-                        'new InlineScript().fromString(`' +
-                        escapeAll(content) +
-                        '`);'), true);
-                }));
-            }
-            if (!calledAutomatically)
-                that.scan(element);
+                    element.innerHTML = functions[element.functionName];
+                    eval(InlineScript + 'new InlineScript().scanAll(element.children)');
+                    return;
+                }
+                if (element.hasInlineScript()) {
+                    try {
+                        handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
+                    }
+                    catch (err) {
+                        handleExceptionResult(element, err);
+                    }
+                    return;
+                }
+                if (element.inlineScriptSrc !== undefined) {
+                    return loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
+                        const innerHTML = newVars.innerHTML;
+                        const args = newVars.args;
+                        handleInlineScriptEvalResult(element, eval(InlineScript +
+                            generateEvalPreCode(element) +
+                            'new InlineScript().fromString(`' +
+                            escapeAll(content) +
+                            '`);'), true);
+                    }));
+                }
+                if (!calledAutomatically)
+                    that.scan(element);
+            };
+            first();
         };
     }
     compileInlineScript(element) {
@@ -385,12 +390,41 @@ class InlineScript {
         element.hasAttribute('static') && element.setStatic();
         this.hasReaction(element) && this.addReaction(element);
         this.hasValidSrcAttribute(element) && this.handleSrcAttribute(element);
+        this.hasEventAttribute(element) && this.handleEventAttributes(element);
+        if (this.hasInnerHTMLAttribute(element))
+            element.fixedHTML = true;
     }
     getFirstAttributeName(element) {
         const attributes = element.attributes;
         if (attributes.length === 0)
             return '';
         return attributes[0].name;
+    }
+    hasEventAttribute(element) {
+        return Array.from(element.attributes).findIndex((attribute) => attribute.name.startsWith('on')) !== -1;
+    }
+    handleEventAttributes(element) {
+        const attributes = Array.from(element.attributes).filter((attribute) => attribute.name.startsWith('on'));
+        attributes.forEach((attribute) => {
+            let value = attribute.value;
+            if (!value) {
+                value = element.innerHTML;
+                element.fixedHTML = true;
+            }
+            element.setAttribute(attribute.name, '');
+            element[attribute.name] = function (event) {
+                eval(value);
+            };
+        });
+    }
+    hasInnerHTMLAttribute(element) {
+        return element.hasAttribute('innerhtml');
+    }
+    handleInnerHTMLAttribute(element) {
+        if (this.hasInnerHTMLAttribute(element))
+            element.innerHTML = element.getAttribute('innerhtml');
+        else
+            element.innerHTML = '';
     }
     hasValidSrcAttribute(element) {
         return element.hasAttribute('src') && !tagNamesUsingSrc.includes(element.tagName);

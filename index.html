@@ -27,13 +27,13 @@
       <script src>const foo = 'foo';</script>
     </div>
 
-    <button>{{
-      this.onclick = function() {
+    <div>{{
+      (<h1 onmouseover="this.render()">{{ Math.random() }}</h1>
+      <button onclick="" innerHTML="set">{{
         state.render()
-      }
-
-      'Hello, world!'
-    }}</button>
+      }}</button>)
+    }}</div>
+    
 
     <script>
       inlineScript();
