@@ -59,10 +59,12 @@ const replaceList = {
 };
 const tagNamesUsingSrc = ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'];
 const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
+let functions = {};
+let macros = {};
 let srcCache = {};
 function load(element, url) {
     element.inlineScriptSrc = url;
-    element.render();
+    element.render(true);
 }
 function loadFromUrl(url) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -92,6 +94,15 @@ function createElements(stringElement) {
     const parent = document.createElement('div');
     parent.innerHTML = '<div>' + stringElement + '</div>';
     return parent.firstChild.children;
+}
+function getAttributesFormElementAsArray(element) {
+    let args = {};
+    Array.from(element.attributes)
+        .map((attribute) => [attribute.name, attribute.value])
+        .forEach(([key, value]) => {
+        args[key] = value;
+    });
+    return args;
 }
 const CSSCommentsRegex = /\/\*([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*\/+/g;
 function removeAllCssComments(css) {
@@ -140,6 +151,9 @@ function scopeStyles(parent) {
 function scopeAllStyles() {
     scopeStyles(document.querySelector('html'));
 }
+const inlineScriptCss = document.createElement('style');
+document.head.appendChild(inlineScriptCss);
+inlineScriptCss.innerHTML += `function { display: none !important; }`;
 function generateEvalPreCode(element) {
     let evalCode = '';
     evalCode += 'let parent=document.querySelector(".' + UNIQUE_CLASS_NAME_PREFIX + element.ucn + '");';
@@ -310,9 +324,28 @@ class InlineScript {
     }
     setRenderFunction(element) {
         const that = this;
-        element.render = function () {
+        let newVars = {};
+        element.render = function (calledAutomatically = false) {
             if (element.static)
                 return;
+            if (element.functionName !== undefined || element.inlineScriptSrc !== undefined) {
+                const virtualElement = document.createElement('div');
+                try {
+                    handleInlineScriptEvalResult(virtualElement, eval(element.inlineScript), true);
+                }
+                catch (err) {
+                    handleExceptionResult(virtualElement, err);
+                }
+                newVars.innerHTML = virtualElement.innerHTML;
+                newVars.args = getAttributesFormElementAsArray(this);
+            }
+            if (element.functionName !== undefined) {
+                const innerHTML = newVars.innerHTML;
+                const args = newVars.args;
+                element.innerHTML = functions[element.functionName];
+                eval(InlineScript + 'new InlineScript().scanAll(element.children)');
+                return;
+            }
             if (element.hasInlineScript()) {
                 try {
                     handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
@@ -320,12 +353,21 @@ class InlineScript {
                 catch (err) {
                     handleExceptionResult(element, err);
                 }
+                return;
             }
             if (element.inlineScriptSrc !== undefined) {
-                loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
-                    handleInlineScriptEvalResult(element, eval(InlineScript + generateEvalPreCode(element) + 'new InlineScript().fromString(`' + content + '`);'), true);
+                return loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
+                    const innerHTML = newVars.innerHTML;
+                    const args = newVars.args;
+                    handleInlineScriptEvalResult(element, eval(InlineScript +
+                        generateEvalPreCode(element) +
+                        'new InlineScript().fromString(`' +
+                        escapeAll(content) +
+                        '`);'), true);
                 }));
             }
+            if (!calledAutomatically)
+                that.scan(element);
         };
     }
     compileInlineScript(element) {
@@ -380,7 +422,16 @@ class InlineScript {
         return element.tagName === 'FUNCTION';
     }
     compileFunction(element) {
+        if (element.attributes.length < 1)
+            return true;
+        const name = element.attributes[0].name;
+        functions[name.toUpperCase()] = element.innerHTML;
         return true;
+    }
+    callsFunction(element) {
+        if (!Object.keys(functions).includes(element.tagName))
+            return;
+        element.functionName = element.tagName;
     }
     isPreLoad(element) {
         return element.tagName === 'PRELOAD';
@@ -393,30 +444,67 @@ class InlineScript {
         element.style.display = 'none';
         return true;
     }
+    shouldScanChildren(element) {
+        return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
+    }
     scan(element, recursive = true) {
+        if (element === undefined)
+            return;
         if (this.checkTagName(element))
             return;
+        this.callsFunction(element);
         this.compileAttributes(element);
         this.compileInlineScript(element);
         this.setRenderFunction(element);
         this.handleAttributes(element);
-        element.render();
-        if (recursive && !element.hasInlineScript())
+        element.render(true);
+        if (recursive && this.shouldScanChildren(element))
             this.scanAll(element.children);
     }
+    isValidScriptTag(element) {
+        return (element.tagName === 'SCRIPT' && element.parentElement !== document.body && element.parentElement !== document.head);
+    }
+    filterScripts(elements) {
+        const scriptElements = [];
+        for (const element of elements)
+            this.isValidScriptTag(element) && scriptElements.push(element);
+        return scriptElements;
+    }
     scanAll(elements) {
+        const scriptElements = this.filterScripts(elements);
+        if (scriptElements.length !== 0) {
+            const elementsLeft = Array.from(elements).filter((element) => !scriptElements.includes(element));
+            eval(scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
+                InlineScript +
+                'new InlineScript().scanAll(elementsLeft)');
+            return;
+        }
         for (const element of elements)
             this.scan(element);
     }
     fromString(stringElement) {
         const elements = createElements(stringElement);
-        for (const element of elements)
-            this.scan(element);
+        this.scanAll(elements);
         return elements;
     }
 }
 function inlineScript() {
+    var _a;
     const inlineScript = new InlineScript();
+    const noScripts = Array.from((_a = document.querySelectorAll('noscript')) !== null && _a !== void 0 ? _a : []);
+    noScripts.forEach((noScript) => {
+        const elements = createElements(noScript.innerHTML);
+        inlineScript.scanAll(elements);
+    });
+    inlineScript.scan(document.head);
     inlineScript.scan(document.body);
     scopeAllStyles();
 }
+const state = {
+    render() {
+        Array.from(document.body.children).forEach((_) => {
+            if (_.render !== undefined)
+                _.render();
+        });
+    },
+};

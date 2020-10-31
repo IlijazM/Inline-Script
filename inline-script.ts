@@ -1,7 +1,7 @@
 //#region HTMLElement prototype
 
 interface HTMLElement {
-  render(): void;
+  render(calledAutomatically: boolean): void;
 
   static: boolean;
 
@@ -15,6 +15,7 @@ interface HTMLElement {
   setStatic(): void;
 
   inlineScriptSrc: string; // The content of the src attribute
+  functionName: string;
 
   initialContent: { set: (value: string) => void; get: () => string };
   _initialContent: string;
@@ -116,7 +117,9 @@ const replaceList = {
 const tagNamesUsingSrc = ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'];
 const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
 
-let srcCache = {};
+let functions: Record<string, string> = {};
+let macros: Record<string, string> = {};
+let srcCache: Record<string, string> = {};
 //#endregion
 
 //#region Functions
@@ -124,7 +127,7 @@ let srcCache = {};
 //#region Load content
 function load(element: HTMLElement, url: string): void {
   element.inlineScriptSrc = url;
-  element.render();
+  element.render(true);
 }
 
 async function loadFromUrl(url: string): Promise<string> {
@@ -158,6 +161,16 @@ function createElements(stringElement: string): HTMLCollection {
   const parent = document.createElement('div');
   parent.innerHTML = '<div>' + stringElement + '</div>';
   return (parent.firstChild as HTMLElement).children;
+}
+
+function getAttributesFormElementAsArray(element: HTMLElement): Record<string, string> {
+  let args = {};
+  Array.from(element.attributes)
+    .map((attribute: Attr) => [attribute.name, attribute.value])
+    .forEach(([key, value]) => {
+      args[key] = value;
+    });
+  return args;
 }
 //#endregion
 
@@ -224,6 +237,12 @@ function scopeStyles(parent: HTMLElement) {
 function scopeAllStyles() {
   scopeStyles(document.querySelector('html'));
 }
+//#endregion
+
+//#region CSS
+const inlineScriptCss = document.createElement('style');
+document.head.appendChild(inlineScriptCss);
+inlineScriptCss.innerHTML += `function { display: none !important; }`;
 //#endregion
 
 //#region HTML Syntax
@@ -372,9 +391,11 @@ function handleExceptionResult(element: HTMLElement, error: any) {
 //#endregion
 
 class InlineScript {
+  //#region Constructor
   constructor() {
     this.setupReaction();
   }
+  //#endregion
 
   //#region Reaction
   reactiveElements: Record<string, Array<HTMLElement>> = {};
@@ -430,32 +451,66 @@ class InlineScript {
   //#region Rendering
   setRenderFunction(element: HTMLElement) {
     const that = this;
-    element.render = function () {
+
+    let newVars: Record<string, any> = {};
+
+    element.render = function (calledAutomatically: boolean = false) {
       if (element.static) return;
+
+      if (element.functionName !== undefined || element.inlineScriptSrc !== undefined) {
+        const virtualElement = document.createElement('div');
+
+        try {
+          handleInlineScriptEvalResult(virtualElement, eval(element.inlineScript), true);
+        } catch (err) {
+          handleExceptionResult(virtualElement, err);
+        }
+
+        newVars.innerHTML = virtualElement.innerHTML;
+        newVars.args = getAttributesFormElementAsArray(this);
+      }
+
+      if (element.functionName !== undefined) {
+        const innerHTML = newVars.innerHTML;
+        const args = newVars.args;
+
+        element.innerHTML = functions[element.functionName];
+
+        eval(InlineScript + 'new InlineScript().scanAll(element.children)');
+
+        return;
+      }
+
       if (element.hasInlineScript()) {
         try {
           handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
         } catch (err) {
           handleExceptionResult(element, err);
         }
+
+        return;
       }
+
       if (element.inlineScriptSrc !== undefined) {
-        loadFromUrl(element.inlineScriptSrc).then(async (content: string) => {
+        return loadFromUrl(element.inlineScriptSrc).then(async (content: string) => {
+          const innerHTML = newVars.innerHTML;
+          const args = newVars.args;
+
           handleInlineScriptEvalResult(
             element,
-            eval(InlineScript + generateEvalPreCode(element) + 'new InlineScript().fromString(`' + content + '`);'),
+            eval(
+              InlineScript +
+                generateEvalPreCode(element) +
+                'new InlineScript().fromString(`' +
+                escapeAll(content) +
+                '`);'
+            ),
             true
           );
         });
-        /**
-         * let evalCode = '';
-          evalCode += 'eval(InlineScript+`';
-          evalCode += 'let parent=document.querySelector("' + element.getUniqueSelector() + '");';
-          evalCode += 'let scope=parent;';
-          evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
-          evalCode += 'new InlineScript().fromString(\\`<';
-         */
       }
+
+      if (!calledAutomatically) that.scan(element);
     };
   }
   //#endregion
@@ -548,7 +603,17 @@ class InlineScript {
   }
 
   compileFunction(element: HTMLElement): boolean {
+    if (element.attributes.length < 1) return true;
+    const name = element.attributes[0].name;
+
+    functions[name.toUpperCase()] = element.innerHTML;
+
     return true;
+  }
+
+  callsFunction(element: HTMLElement) {
+    if (!Object.keys(functions).includes(element.tagName)) return;
+    element.functionName = element.tagName;
   }
   //#endregion
 
@@ -572,28 +637,60 @@ class InlineScript {
 
   //#region Scan
   /**
+   * Tells if the scan script should scan the children of an element
+   */
+  shouldScanChildren(element: HTMLElement): boolean {
+    return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
+  }
+
+  /**
    * Will scan a html element
    *
    * @param element the element that will get scanned
    * @param recursive if true the child elements will get scanned as well
    */
   scan(element: HTMLElement, recursive: boolean = true) {
+    if (element === undefined) return;
+
     if (this.checkTagName(element)) return;
 
+    this.callsFunction(element);
     this.compileAttributes(element);
     this.compileInlineScript(element);
     this.setRenderFunction(element);
     this.handleAttributes(element);
 
-    element.render();
+    element.render(true);
 
-    if (recursive && !element.hasInlineScript()) this.scanAll(element.children);
+    if (recursive && this.shouldScanChildren(element)) this.scanAll(element.children);
+  }
+
+  isValidScriptTag(element: HTMLElement): boolean {
+    return (
+      element.tagName === 'SCRIPT' && element.parentElement !== document.body && element.parentElement !== document.head
+    );
+  }
+
+  filterScripts(elements: HTMLCollection): Array<HTMLElement> {
+    const scriptElements = [];
+    for (const element of elements) this.isValidScriptTag(element as HTMLElement) && scriptElements.push(element);
+    return scriptElements;
   }
 
   /**
    * Runs the scan function on all html elements
    */
   scanAll(elements: HTMLCollection) {
+    const scriptElements = this.filterScripts(elements);
+    if (scriptElements.length !== 0) {
+      const elementsLeft = Array.from(elements).filter((element: HTMLElement) => !scriptElements.includes(element));
+      eval(
+        scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
+          InlineScript +
+          'new InlineScript().scanAll(elementsLeft)'
+      );
+      return;
+    }
     for (const element of elements) this.scan(element as HTMLElement);
   }
   //#endregion
@@ -601,7 +698,7 @@ class InlineScript {
   //#region From string
   fromString(stringElement: string) {
     const elements = createElements(stringElement);
-    for (const element of elements) this.scan(element as HTMLElement);
+    this.scanAll(elements);
     return elements;
   }
   //#endregion
@@ -612,6 +709,23 @@ class InlineScript {
  */
 function inlineScript() {
   const inlineScript = new InlineScript();
+
+  const noScripts = Array.from(document.querySelectorAll('noscript') ?? []);
+  noScripts.forEach((noScript) => {
+    const elements = createElements(noScript.innerHTML);
+    inlineScript.scanAll(elements);
+  });
+
+  inlineScript.scan(document.head);
   inlineScript.scan(document.body);
+
   scopeAllStyles();
 }
+
+const state = {
+  render() {
+    Array.from(document.body.children).forEach((_: any) => {
+      if (_.render !== undefined) _.render();
+    });
+  },
+};
