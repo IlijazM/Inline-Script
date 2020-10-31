@@ -7,6 +7,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+HTMLElement.prototype.text = function () {
+    const texts = [];
+    let child = this.firstChild;
+    while (child) {
+        child.nodeType === 3 && texts.push(child.data);
+        child = child.nextSibling;
+    }
+    return texts.join('');
+};
 HTMLElement.prototype.setUcn = function () {
     if (this.classList.contains(CLASS_NAME))
         return;
@@ -270,6 +279,17 @@ function handleInlineScriptEvalResult(element, result, clear = false) {
     element.innerHTML += result.toString();
     return;
 }
+function handleResult(result) {
+    if (result === undefined)
+        return '';
+    if (typeof result === 'string')
+        return result;
+    if (typeof result === 'number')
+        return result.toString();
+    if (result instanceof Array)
+        return result.join('');
+    return JSON.stringify(result);
+}
 function handleExceptionResult(element, error) {
     console.error(error);
     element.style.background = 'red';
@@ -328,51 +348,52 @@ class InlineScript {
         element.render = function (calledAutomatically = false) {
             if (element.static)
                 return;
-            const first = () => {
-                if (element.fixedHTML)
-                    return that.handleInnerHTMLAttribute(element);
-                if (element.functionName !== undefined || element.inlineScriptSrc !== undefined) {
-                    const virtualElement = document.createElement('div');
-                    try {
-                        handleInlineScriptEvalResult(virtualElement, eval(element.inlineScript), true);
-                    }
-                    catch (err) {
-                        handleExceptionResult(virtualElement, err);
-                    }
-                    newVars.innerHTML = virtualElement.innerHTML;
-                    newVars.args = getAttributesFormElementAsArray(this);
+            element.inlineScriptAttributes.forEach(({ name, value }) => {
+                const res = handleResult(eval(value));
+                element.setAttribute(name, res);
+            });
+            if (element.fixedHTML)
+                return that.handleInnerHTMLAttribute(element);
+            if (element.functionName !== undefined || element.inlineScriptSrc !== undefined) {
+                const virtualElement = document.createElement('div');
+                try {
+                    handleInlineScriptEvalResult(virtualElement, eval(element.inlineScript), true);
                 }
-                if (element.functionName !== undefined) {
+                catch (err) {
+                    handleExceptionResult(virtualElement, err);
+                }
+                newVars.innerHTML = virtualElement.innerHTML;
+                newVars.args = getAttributesFormElementAsArray(this);
+            }
+            if (element.functionName !== undefined) {
+                const innerHTML = newVars.innerHTML;
+                const args = newVars.args;
+                element.innerHTML = functions[element.functionName];
+                eval(InlineScript + 'new InlineScript().scanAll(element.children)');
+                return;
+            }
+            if (element.hasInlineScript()) {
+                try {
+                    handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
+                }
+                catch (err) {
+                    handleExceptionResult(element, err);
+                }
+                return;
+            }
+            if (element.inlineScriptSrc !== undefined) {
+                return loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
                     const innerHTML = newVars.innerHTML;
                     const args = newVars.args;
-                    element.innerHTML = functions[element.functionName];
-                    eval(InlineScript + 'new InlineScript().scanAll(element.children)');
-                    return;
-                }
-                if (element.hasInlineScript()) {
-                    try {
-                        handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
-                    }
-                    catch (err) {
-                        handleExceptionResult(element, err);
-                    }
-                    return;
-                }
-                if (element.inlineScriptSrc !== undefined) {
-                    return loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
-                        const innerHTML = newVars.innerHTML;
-                        const args = newVars.args;
-                        handleInlineScriptEvalResult(element, eval(InlineScript +
-                            generateEvalPreCode(element) +
-                            'new InlineScript().fromString(`' +
-                            escapeAll(content) +
-                            '`);'), true);
-                    }));
-                }
-                if (!calledAutomatically)
-                    that.scan(element);
-            };
-            first();
+                    handleInlineScriptEvalResult(element, eval(InlineScript +
+                        generateEvalPreCode(element) +
+                        'new InlineScript().fromString(`' +
+                        escapeAll(content) +
+                        '`);'), true);
+                }));
+            }
+            if (!calledAutomatically)
+                that.scan(element);
         };
     }
     compileInlineScript(element) {
@@ -384,8 +405,16 @@ class InlineScript {
     isInlineScript(element) {
         return element.innerHTML.trim().startsWith('{');
     }
-    compileAttributes(element) { }
-    renderAttributes(element) { }
+    compileAttributes(element) {
+        const attributes = Array.from(element.attributes);
+        const inlineScriptAttributes = [];
+        attributes.forEach((attribute) => {
+            if (attribute.value.trim().startsWith('{')) {
+                inlineScriptAttributes.push(attribute);
+            }
+        });
+        element.inlineScriptAttributes = inlineScriptAttributes;
+    }
     handleAttributes(element) {
         element.hasAttribute('static') && element.setStatic();
         this.hasReaction(element) && this.addReaction(element);

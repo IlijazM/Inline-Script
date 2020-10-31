@@ -18,7 +18,7 @@
     <div>{{
       const foo = 'foo'
 
-      (<div baz="lol" src="load.html"></div>)
+      (<div baz={Math.random()} src="load.html"></div>)
     }}</div>
 
     <div id="debug">
@@ -34,7 +34,6 @@
       }}</button>)
     }}</div>
     
-
     <script>
       inlineScript();
     </script>
