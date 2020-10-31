@@ -8,7 +8,7 @@
     <script src="inline-script.js"></script>
   </head>
 
-  <body>
+  <body static>
     <preload src="load.html"></preload>
 
     <function foo>
@@ -28,10 +28,14 @@
     </div>
 
     <div>{{
-      (<h1 onmouseover="this.render()">{{ Math.random() }}</h1>
-      <button onclick="" innerHTML="set">{{
-        state.render()
-      }}</button>)
+      const foo = 'Bar'
+
+      (<div dynamic>
+        <h1>{{ foo }}</h1>
+        <button onclick innerhtml="PRESS ME">{{
+          console.log(foo)
+        }}</button>
+      </div>)
     }}</div>
     
     <script>

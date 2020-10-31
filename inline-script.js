@@ -28,11 +28,8 @@ HTMLElement.prototype.removeUcn = function () {
     this.classList.remove(UNIQUE_CLASS_NAME_PREFIX + this.ucn);
 };
 HTMLElement.prototype.setStatic = function () {
-    this.render();
-    this.render = function () { };
-    this.removeUcn();
-    this.inlineScript = undefined;
-    this.inlineScriptAttributes = undefined;
+    this.setAttribute('static', 'true');
+    this.static = true;
 };
 HTMLElement.prototype.initialContent = {
     set(value) {
@@ -71,6 +68,7 @@ const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
 let functions = {};
 let macros = {};
 let srcCache = {};
+var __parent;
 function load(element, url) {
     element.inlineScriptSrc = url;
     element.render(true);
@@ -166,7 +164,7 @@ inlineScriptCss.innerHTML += `function { display: none !important; }`;
 function generateEvalPreCode(element) {
     let evalCode = '';
     evalCode += 'let parent=document.querySelector(".' + UNIQUE_CLASS_NAME_PREFIX + element.ucn + '");';
-    evalCode += 'let scope=parent;';
+    evalCode += 'let scope=parent,__parent=parent;';
     evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
     return evalCode;
 }
@@ -416,7 +414,6 @@ class InlineScript {
         element.inlineScriptAttributes = inlineScriptAttributes;
     }
     handleAttributes(element) {
-        element.hasAttribute('static') && element.setStatic();
         this.hasReaction(element) && this.addReaction(element);
         this.hasValidSrcAttribute(element) && this.handleSrcAttribute(element);
         this.hasEventAttribute(element) && this.handleEventAttributes(element);
@@ -510,6 +507,10 @@ class InlineScript {
     shouldScanChildren(element) {
         return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
     }
+    isStatic(element) {
+        var _a;
+        return (element.hasAttribute('static') || (__parent === null || __parent === void 0 ? void 0 : __parent.hasAttribute('static')) || ((_a = element.parentElement) === null || _a === void 0 ? void 0 : _a.hasAttribute('static')));
+    }
     scan(element, recursive = true) {
         if (element === undefined)
             return;
@@ -520,7 +521,11 @@ class InlineScript {
         this.compileInlineScript(element);
         this.setRenderFunction(element);
         this.handleAttributes(element);
+        if (this.isStatic(element))
+            element.setAttribute('static', 'true');
         element.render(true);
+        if (element.hasAttribute('static'))
+            element.static = true;
         if (recursive && this.shouldScanChildren(element))
             this.scanAll(element.children);
     }
@@ -542,8 +547,14 @@ class InlineScript {
                 'new InlineScript().scanAll(elementsLeft)');
             return;
         }
-        for (const element of elements)
-            this.scan(element);
+        for (const element of elements) {
+            if (element.hasAttribute('dynamic')) {
+                newInlineScript(element);
+            }
+            else {
+                this.scan(element);
+            }
+        }
     }
     fromString(stringElement) {
         const elements = createElements(stringElement);
@@ -562,6 +573,9 @@ function inlineScript() {
     inlineScript.scan(document.head);
     inlineScript.scan(document.body);
     scopeAllStyles();
+}
+function newInlineScript(element) {
+    new InlineScript().scan(element);
 }
 const state = {
     render() {

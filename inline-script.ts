@@ -59,13 +59,17 @@ HTMLElement.prototype.removeUcn = function () {
 };
 
 HTMLElement.prototype.setStatic = function () {
-  this.render();
+  // const innerHTML = this.innerHTML;
+  // this.render = function () {
+  //   return innerHTML;
+  // };
+  // this.removeUcn();
 
-  this.render = function () {};
-  this.removeUcn();
+  // this.inlineScript = undefined;
+  // this.inlineScriptAttributes = undefined;
+  this.setAttribute('static', 'true');
 
-  this.inlineScript = undefined;
-  this.inlineScriptAttributes = undefined;
+  this.static = true;
 };
 
 /**
@@ -123,6 +127,8 @@ const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
 let functions: Record<string, string> = {};
 let macros: Record<string, string> = {};
 let srcCache: Record<string, string> = {};
+
+var __parent: any;
 //#endregion
 
 //#region Functions
@@ -175,6 +181,8 @@ function getAttributesFormElementAsArray(element: HTMLElement): Record<string, s
     });
   return args;
 }
+//#endregion
+
 //#endregion
 
 //#region Scoped CSS
@@ -252,7 +260,7 @@ inlineScriptCss.innerHTML += `function { display: none !important; }`;
 function generateEvalPreCode(element: HTMLElement): string {
   let evalCode = '';
   evalCode += 'let parent=document.querySelector(".' + UNIQUE_CLASS_NAME_PREFIX + element.ucn + '");';
-  evalCode += 'let scope=parent;';
+  evalCode += 'let scope=parent,__parent=parent;';
   evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
   return evalCode;
 }
@@ -563,7 +571,6 @@ class InlineScript {
   }
 
   handleAttributes(element: HTMLElement) {
-    element.hasAttribute('static') && element.setStatic();
     this.hasReaction(element) && this.addReaction(element);
     this.hasValidSrcAttribute(element) && this.handleSrcAttribute(element);
     this.hasEventAttribute(element) && this.handleEventAttributes(element);
@@ -581,7 +588,7 @@ class InlineScript {
   }
   //#endregion
 
-  //#region Event ttribute
+  //#region Event attribute
   hasEventAttribute(element: HTMLElement): boolean {
     return Array.from(element.attributes).findIndex((attribute) => attribute.name.startsWith('on')) !== -1;
   }
@@ -709,6 +716,14 @@ class InlineScript {
     return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
   }
 
+  isStatic(element: HTMLElement): boolean {
+    return (
+      element.hasAttribute('static') ||
+      __parent?.hasAttribute('static') ||
+      element.parentElement?.hasAttribute('static')
+    );
+  }
+
   /**
    * Will scan a html element
    *
@@ -726,7 +741,11 @@ class InlineScript {
     this.setRenderFunction(element);
     this.handleAttributes(element);
 
+    if (this.isStatic(element)) element.setAttribute('static', 'true');
+
     element.render(true);
+
+    if (element.hasAttribute('static')) element.static = true;
 
     if (recursive && this.shouldScanChildren(element)) this.scanAll(element.children);
   }
@@ -757,7 +776,13 @@ class InlineScript {
       );
       return;
     }
-    for (const element of elements) this.scan(element as HTMLElement);
+    for (const element of elements) {
+      if (element.hasAttribute('dynamic')) {
+        newInlineScript(element as HTMLElement);
+      } else {
+        this.scan(element as HTMLElement);
+      }
+    }
   }
   //#endregion
 
@@ -770,6 +795,7 @@ class InlineScript {
   //#endregion
 }
 
+//#region Setup
 /**
  * Will initiate everything automatically
  */
@@ -788,6 +814,10 @@ function inlineScript() {
   scopeAllStyles();
 }
 
+function newInlineScript(element: HTMLElement) {
+  new InlineScript().scan(element);
+}
+
 const state = {
   render() {
     Array.from(document.body.children).forEach((_: any) => {
@@ -795,3 +825,4 @@ const state = {
     });
   },
 };
+//#endregion
