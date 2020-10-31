@@ -9,35 +9,12 @@
   </head>
 
   <body static>
-    <preload src="load.html"></preload>
+    <h1>{{ 
+      let foo = 'bar';
 
-    <function foo>
-      
-    </function>
+      foo
+     }}</h1>
 
-    <div>{{
-      const foo = 'foo'
-
-      (<div baz={Math.random()} src="load.html"></div>)
-    }}</div>
-
-    <div id="debug">
-      <div baz="baz" src="load.html"></div>
-
-      <script src>const foo = 'foo';</script>
-    </div>
-
-    <div>{{
-      const foo = 'Bar'
-
-      (<div dynamic>
-        <h1>{{ foo }}</h1>
-        <button onclick innerhtml="PRESS ME">{{
-          console.log(foo)
-        }}</button>
-      </div>)
-    }}</div>
-    
     <script>
       inlineScript();
     </script>
