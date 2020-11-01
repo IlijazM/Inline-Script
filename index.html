@@ -8,12 +8,17 @@
     <script src="inline-script.js"></script>
   </head>
 
-  <body static>
-    <h1>{{ 
-      let foo = 'bar';
+  <body>
 
-      foo
-     }}</h1>
+    <div>{{
+      const foo = 'foo';
+
+      (<div>{
+        const bar = 'bar';
+
+        (<h1>{ foo + ' ' + bar }</h1>)
+      }</div>)
+    }}</div> 
 
     <script>
       inlineScript();

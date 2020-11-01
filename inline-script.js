@@ -42,15 +42,15 @@ if (!Array.prototype.includes) {
     });
 }
 HTMLElement.prototype.setUcn = function () {
-    if (this.classList.contains(CLASS_NAME))
+    if (this.classList.contains(InlineScript.CLASS_NAME))
         return;
-    this.classList.add(CLASS_NAME);
-    this.ucn = inlineScriptUCN++;
-    this.classList.add(UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+    this.classList.add(InlineScript.CLASS_NAME);
+    this.ucn = InlineScript.inlineScriptUCN++;
+    this.classList.add(InlineScript.UNIQUE_CLASS_NAME_PREFIX + this.ucn);
 };
 HTMLElement.prototype.removeUcn = function () {
-    this.classList.remove(CLASS_NAME);
-    this.classList.remove(UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+    this.classList.remove(InlineScript.CLASS_NAME);
+    this.classList.remove(InlineScript.UNIQUE_CLASS_NAME_PREFIX + this.ucn);
 };
 HTMLElement.prototype.setInlineScript = function (value) {
     if (this.inlineScript === undefined)
@@ -67,70 +67,37 @@ HTMLElement.prototype.setInlineScriptAttributes = function (value) {
 HTMLElement.prototype.hasInlineScriptAttributes = function () {
     return this.inlineScriptAttributes !== undefined && this.inlineScriptAttributes.length > 0;
 };
-const UNIQUE_CLASS_NAME_PREFIX = '--is-ucn-';
-var inlineScriptUCN = 0;
-const CLASS_NAME = '--inline-script';
-const SCOPED_CSS_PREFIX = 'scoped-css-id-';
-let scopedCSSId = 0;
-const reverseSanitationReplaceList = {
-    '\\&gt;': '>',
-    '\\&lt;': '<',
+HTMLElement.prototype.callsFunction = function () {
+    return this.functionName !== undefined;
 };
-const cssCommentsRegex = /\/\*([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*\/+/gm;
-const tagNamesUsingSrcAttribute = ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'];
-const ignoredTagNameList = ['SCRIPT', 'STYLE', 'LINK', 'META'];
-const noRenderingTagNameList = ['FUNCTION'];
-let functions = {};
-let srcCache = {};
-var __parent;
-function load(url, forceFetch = false) {
+const load = (url, forceFetch = false) => {
     if (forceFetch)
-        removeFromCache(url);
+        InlineScript.removeFromCache(url);
     this.inlineScriptSrc = url;
     this.render(true);
+};
+function inlineScript() {
+    const inlineScript = new InlineScriptInstance();
+    [document.head, document.body].forEach((element) => inlineScript.scan(element));
+    ScopedCss.scopeAllStyles();
 }
-const loadFromUrl = (url, forceFetch = false) => __awaiter(this, void 0, void 0, function* () {
-    let res;
-    if (srcCache[url] === undefined || forceFetch)
-        res = yield (yield fetch(url)).text();
-    else
-        res = srcCache[url];
-    srcCache[url] = res;
-    return res;
-});
-function removeFromCache(url) {
-    srcCache[url] = undefined;
-}
-function reverseSanitation(html) {
-    for (const [regex, replacement] of Object.entries(reverseSanitationReplaceList))
-        html = html.replace(new RegExp(regex, 'gm'), replacement);
-    return html;
-}
-function escapeAll(string) {
-    return string
-        .replace(/\\/gm, '\\\\')
-        .replace(/\$/gm, '\\$')
-        .replace(/'/gm, "\\'")
-        .replace(/"/gm, '\\"')
-        .replace(/`/gm, '\\`');
-}
-function createElements(stringElement) {
-    const parent = document.createElement('div');
-    parent.innerHTML = '<div>' + stringElement + '</div>';
-    return parent.firstChild.children;
-}
-function getAttributesFromElementsAsArray(element) {
-    return Object.entries(Array.from(element.attributes).map((attribute) => [attribute.name, attribute.value]));
-}
-function substringThrow(string, start, length = undefined) {
-    const res = string.substr(start, length);
-    if (res === '')
-        throw 'substring is out of bounce.';
-    return res;
-}
-const scopedCss = {
+const state = {
+    render() {
+        Array.from(document.body.children).forEach((element) => {
+            if (element.render !== undefined)
+                element.render();
+        });
+    },
+};
+const inlineScriptCss = document.createElement('style');
+document.head.appendChild(inlineScriptCss);
+inlineScriptCss.innerHTML += `function, preload { display: none !important; }`;
+const ScopedCss = {
+    SCOPED_CSS_PREFIX: 'scoped-css-id-',
+    scopedCSSId: 0,
+    cssCommentsRegex: /\/\*([^*]|[\r\n]|(\*+([^*\/]|[\r\n])))*\*\/+/gm,
     removeAllCssComments(css) {
-        return css.replace(cssCommentsRegex, '');
+        return css.replace(ScopedCss.cssCommentsRegex, '');
     },
     scope(scope, css) {
         css = this.removeAllCssComments(css);
@@ -155,7 +122,7 @@ const scopedCss = {
         return css;
     },
     getUniqueStyleClassName() {
-        return SCOPED_CSS_PREFIX + scopedCSSId++;
+        return ScopedCss.SCOPED_CSS_PREFIX + ScopedCss.scopedCSSId++;
     },
     getScopedStyleElements(parent) {
         return Array.from(parent.querySelectorAll('style[scoped]'));
@@ -175,140 +142,329 @@ const scopedCss = {
         this.scopeStyles(document.querySelector('html'));
     },
 };
-const inlineScriptCss = document.createElement('style');
-document.head.appendChild(inlineScriptCss);
-inlineScriptCss.innerHTML += `function { display: none !important; }`;
-function handleInlineScriptEvalResultUndefined(result) {
-    return result === undefined;
-}
-function handleInlineScriptEvalResultHTMLCollection(element, result) {
-    if (!(result instanceof HTMLCollection))
-        return;
-    Array.from(result).forEach((child) => element.append(child));
-    scopedCss.scopeStyles(element);
-    return true;
-}
-function handleInlineScriptEvalResultHTMLElement(element, result) {
-    if (!(result instanceof HTMLElement))
-        return;
-    element.append(result);
-    scopedCss.scopeStyles(element);
-    return true;
-}
-function handleInlineScriptEvalResultArray(element, result) {
-    if (!(result instanceof Array))
-        return;
-    result.forEach((child) => {
-        handleInlineScriptEvalResult(element, child);
-    });
-    return true;
-}
-function handleInlineScriptEvalResultPromise(element, result) {
-    if (!(result instanceof Promise))
-        return;
-    result
-        .then((res) => {
-        handleInlineScriptEvalResult(element, res);
-    })
-        .catch((res) => {
-        handleExceptionResult(element, res);
-    });
-    return true;
-}
-function handleInlineScriptEvalResult(element, result, clear = false) {
-    if (clear)
-        element.innerHTML = '';
-    if (handleInlineScriptEvalResultUndefined(result))
-        return;
-    if (handleInlineScriptEvalResultHTMLCollection(element, result))
-        return;
-    if (handleInlineScriptEvalResultHTMLElement(element, result))
-        return;
-    if (handleInlineScriptEvalResultArray(element, result))
-        return;
-    if (handleInlineScriptEvalResultPromise(element, result))
-        return;
-    element.innerHTML += result.toString();
-    return;
-}
-function handleResult(result) {
-    if (result === undefined)
-        return '';
-    if (typeof result === 'string')
-        return result;
-    if (typeof result === 'number')
-        return result.toString();
-    if (result instanceof Array)
-        return result.join('');
-    return JSON.stringify(result);
-}
-function handleExceptionResult(element, error) {
-    console.error(error);
-    element.style.background = 'red';
-    element.style.color = 'yellow';
-    element.style.fontSize = '20px';
-    element.innerHTML = error;
-}
 const InlineScript = {
+    reverseSanitationReplaceList: {
+        '\\&gt;': '>',
+        '\\&lt;': '<',
+    },
+    reverseSanitation(html) {
+        for (const [regex, replacement] of Object.entries(InlineScript.reverseSanitationReplaceList))
+            html = html.replace(new RegExp(regex, 'gm'), replacement);
+        return html;
+    },
+    escapeAll(string) {
+        return string
+            .replace(/\\/gm, '\\\\')
+            .replace(/\$/gm, '\\$')
+            .replace(/'/gm, "\\'")
+            .replace(/"/gm, '\\"')
+            .replace(/`/gm, '\\`');
+    },
+    createElements(stringElement) {
+        const parent = document.createElement('div');
+        parent.innerHTML = '<div>' + stringElement + '</div>';
+        return parent.firstChild.children;
+    },
+    getAttributesFromElementsAsArray(element) {
+        return Object.entries(Array.from(element.attributes).map((attribute) => [attribute.name, attribute.value]));
+    },
+    substringThrow(string, start, length = undefined) {
+        const res = string.substr(start, length);
+        if (res === '')
+            throw 'substring is out of bounce.';
+        return res;
+    },
+    newInlineScript(element) {
+        new InlineScriptInstance().scan(element);
+    },
+    srcCache: {},
+    loadFromUrl(url, forceFetch = false) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let res;
+            if (InlineScript.srcCache[url] === undefined || forceFetch)
+                res = yield (yield fetch(url)).text();
+            else
+                res = InlineScript.srcCache[url];
+            InlineScript.srcCache[url] = res;
+            return res;
+        });
+    },
+    removeFromCache(url) {
+        InlineScript.srcCache[url] = undefined;
+    },
+    UNIQUE_CLASS_NAME_PREFIX: '--is-ucn-',
+    inlineScriptUCN: 0,
+    CLASS_NAME: '--inline-script',
+    insertLexingResult(string, lexingResult) {
+        return (string.substr(0, lexingResult.index) +
+            lexingResult.content +
+            string.substr(lexingResult.index + lexingResult.length));
+    },
     generateEvalPreCode(parentElement) {
         let evalCode = '';
-        evalCode += 'let parent=document.querySelector(".' + UNIQUE_CLASS_NAME_PREFIX + parentElement.ucn + '");';
+        evalCode +=
+            'let parent=document.querySelector(".' + InlineScript.UNIQUE_CLASS_NAME_PREFIX + parentElement.ucn + '");';
         evalCode += 'let scope=parent,__parent=parent;';
         evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
         return evalCode;
     },
-    compileHTMLSyntax(inlineScript, element) {
-        inlineScript = reverseSanitation(inlineScript);
-        let depth = 0;
-        let newInlineScript = '';
+    removeEmptySpace(string) {
+        return string.replace(/\n|\s/gm, '');
+    },
+    convertHTMLSyntaxResultContent(content, element) {
+        return ('eval(InlineScriptInstance+`' +
+            InlineScript.generateEvalPreCode(element) +
+            'new InlineScriptInstance().fromString(\\`' +
+            content.substring(1, content.length - 1) +
+            '\\`)`)');
+    },
+    scanHTMLSyntax(string, startIndex) {
+        let result = {
+            index: null,
+            length: null,
+            content: null,
+        };
         try {
-            for (let i = 0; i < inlineScript.length; i++) {
-                let c = substringThrow(inlineScript, i, 1);
-                let cc = substringThrow(inlineScript, i, 2);
-                function find(char) {
-                    const sub = substringThrow(inlineScript, i);
-                    const j = sub.indexOf(char);
-                    return substringThrow(sub, 0, j + 1);
-                }
-                function expect(expect, char) {
-                    return find(char).replace(/\n|\s/gm, '') === expect;
-                }
-                if (cc === '//') {
-                    while (substringThrow(inlineScript, i, 1) !== '\n') {
-                        newInlineScript += substringThrow(inlineScript, i, 1);
+            let depth = 0;
+            for (let i = startIndex; i < string.length; i++) {
+                const c = InlineScript.substringThrow(string, i, 1);
+                const cc = InlineScript.substringThrow(string, i, 2);
+                if (['"', "'", '¸'].includes(c)) {
+                    const quote = c;
+                    i++;
+                    while (InlineScript.substringThrow(string, i, 1) !== quote ||
+                        InlineScript.substringThrow(string, i - 1, 1) === '\\')
                         i++;
-                    }
-                    i--;
-                    continue;
                 }
-                if (c === '(' && expect('(<', '<')) {
-                    depth++;
-                    if (depth === 1) {
-                        let evalCode = '';
-                        evalCode += 'eval(InlineScriptInstance+`';
-                        evalCode += this.generateEvalPreCode(element);
-                        evalCode += 'new InlineScriptInstance().fromString(\\`<';
-                        newInlineScript += evalCode;
+                if (cc === '//')
+                    while (InlineScript.substringThrow(string, i, 1) !== '\n')
                         i++;
-                        continue;
-                    }
-                }
-                if (c === '>' && expect('>)', ')')) {
-                    depth--;
-                    if (depth === 0) {
-                        newInlineScript += '>\\`)`)';
+                if (InlineScript.substringThrow(string, i, 4) === '<!--')
+                    while (InlineScript.substringThrow(string, i, 1) !== '\n')
                         i++;
-                        continue;
+                if (cc === '/*')
+                    while (InlineScript.substringThrow(string, i, 2) !== '*/')
+                        i++;
+                while (InlineScript.substringThrow(string, i, 1) === '(') {
+                    const bracketIndex = i;
+                    i++;
+                    while (/\s|\r/.test(InlineScript.substringThrow(string, i, 1)))
+                        i++;
+                    if (InlineScript.substringThrow(string, i, 1) === '<') {
+                        depth++;
+                        if (depth === 1)
+                            result.index = bracketIndex;
                     }
                 }
-                if (depth !== 0)
-                    c = escapeAll(escapeAll(c));
-                newInlineScript += c;
+                while (InlineScript.substringThrow(string, i, 1) === '>' && depth > 0) {
+                    i++;
+                    while (/\s|\r/.test(InlineScript.substringThrow(string, i, 1)))
+                        i++;
+                    if (InlineScript.substringThrow(string, i, 1) === ')') {
+                        depth--;
+                        if (depth === 0) {
+                            result.length = i + 1 - result.index;
+                            result.content = string.substr(result.index, result.length);
+                            result.content = InlineScript.escapeAll(InlineScript.escapeAll(result.content));
+                            return result;
+                        }
+                    }
+                }
             }
         }
         catch (_a) { }
-        return newInlineScript;
+        return null;
     },
+    compileHTMLSyntax(inlineScript, element) {
+        inlineScript = InlineScript.reverseSanitation(inlineScript);
+        let lexingResult, lastIndex = 0;
+        while ((lexingResult = InlineScript.scanHTMLSyntax(inlineScript, lastIndex))) {
+            lexingResult.content = InlineScript.convertHTMLSyntaxResultContent(lexingResult.content, element);
+            inlineScript = InlineScript.insertLexingResult(inlineScript, lexingResult);
+            lastIndex = lexingResult.index + lexingResult.content.length;
+        }
+        return inlineScript;
+    },
+    generatesChildElements(element) {
+        return element.functionName !== undefined || element.inlineScriptSrc !== undefined;
+    },
+    evalResultHandler: {
+        handleEvalResultUndefined(element, result) {
+            return result === undefined;
+        },
+        handleEvalResultHTMLCollection(element, result) {
+            if (!(result instanceof HTMLCollection))
+                return;
+            Array.from(result).forEach((child) => element.append(child));
+            ScopedCss.scopeStyles(element);
+            return true;
+        },
+        handleEvalResultHTMLElement(element, result) {
+            if (!(result instanceof HTMLElement))
+                return;
+            element.append(result);
+            ScopedCss.scopeStyles(element);
+            return true;
+        },
+        handleEvalResultArray(element, result) {
+            if (!(result instanceof Array))
+                return;
+            result.forEach((child) => {
+                this.handleInlineScriptEvalResult(element, child);
+            });
+            return true;
+        },
+        handleEvalResultPromise(element, result) {
+            if (!(result instanceof Promise))
+                return;
+            result
+                .then((res) => {
+                this.handleInlineScriptEvalResult(element, res);
+            })
+                .catch((res) => {
+                this.handleExceptionResult(element, res);
+            });
+            return true;
+        },
+    },
+    handleEvalResult(element, result, clear = false) {
+        if (clear)
+            element.innerHTML = '';
+        for (const [functionName, functionValue] of Object.entries(this.evalResultHandler)) {
+            if (functionValue(element, result))
+                return;
+        }
+        element.innerHTML += result.toString();
+        return;
+    },
+    handleResult(result) {
+        if (result === undefined)
+            return '';
+        if (typeof result === 'string')
+            return result;
+        if (typeof result === 'number')
+            return result.toString();
+        if (result instanceof Array)
+            return result.join('');
+        return JSON.stringify(result);
+    },
+    handleExceptionResult(element, error) {
+        console.error(error);
+        element.style.background = 'red';
+        element.style.color = 'yellow';
+        element.style.fontSize = '20px';
+        element.innerHTML = error;
+    },
+    scanAttributes(element) {
+        const attributes = Array.from(element.attributes);
+        const inlineScriptAttributes = [];
+        attributes.forEach((attribute) => {
+            if (attribute.value.trim().startsWith('{')) {
+                inlineScriptAttributes.push(attribute);
+            }
+        });
+        element.inlineScriptAttributes = inlineScriptAttributes;
+    },
+    getFirstAttributeName(element) {
+        const attributes = element.attributes;
+        if (attributes.length === 0)
+            return '';
+        return attributes[0].name;
+    },
+    hasReaction(element) {
+        return element.hasAttribute('reacts');
+    },
+    tagNameUsesSrcAttribute(element) {
+        return InlineScript.tagNamesUsingSrcAttribute.includes(element.tagName);
+    },
+    hasValidSrcAttribute(element) {
+        return element.hasAttribute('src') && !InlineScript.tagNameUsesSrcAttribute(element);
+    },
+    handleSrcAttribute(element) {
+        const src = element.getAttribute('src');
+        element.inlineScriptSrc = src;
+    },
+    hasEventAttribute(element) {
+        return Array.from(element.attributes).findIndex((attribute) => attribute.name.startsWith('on')) !== -1;
+    },
+    hasInnerHTMLAttribute(element) {
+        return element.hasAttribute('innerhtml');
+    },
+    handleInnerHTMLAttribute(element) {
+        if (this.hasInnerHTMLAttribute(element))
+            element.innerHTML = element.getAttribute('innerhtml');
+        else
+            element.innerHTML = '';
+    },
+    hasInlineScript(element) {
+        return element.innerHTML.trim().startsWith('{');
+    },
+    checksInlineScript(element) {
+        if (!InlineScript.hasInlineScript(element))
+            return;
+        element.setUcn();
+        element.setInlineScript(InlineScript.compileHTMLSyntax(element.innerHTML, element));
+    },
+    functions: {},
+    isFunction(element) {
+        return element.tagName === 'FUNCTION';
+    },
+    compileFunction(element) {
+        if (element.attributes.length < 1)
+            return true;
+        const name = element.attributes[0].name;
+        InlineScript.functions[name.toUpperCase()] = element.innerHTML;
+        return true;
+    },
+    callsFunction(element) {
+        return Object.keys(InlineScript.functions).includes(element.tagName);
+    },
+    handleCallsFunction(element) {
+        element.functionName = element.tagName;
+    },
+    isPreLoad(element) {
+        return element.tagName === 'PRELOAD';
+    },
+    preLoad(element) {
+        if (!element.hasAttribute('src'))
+            return true;
+        const src = element.getAttribute('src');
+        InlineScript.loadFromUrl(src);
+        return true;
+    },
+    ignoredTagNameList: ['SCRIPT', 'STYLE', 'LINK', 'META'],
+    ignoreDueToTagName(element) {
+        return InlineScript.ignoredTagNameList.includes(element.tagName);
+    },
+    scanTagName(element) {
+        if (InlineScript.ignoreDueToTagName(element))
+            return true;
+        if (InlineScript.isFunction(element))
+            return InlineScript.compileFunction(element);
+        if (InlineScript.callsFunction(element))
+            return InlineScript.handleCallsFunction(element);
+        if (InlineScript.isPreLoad(element))
+            return InlineScript.preLoad(element);
+    },
+    shouldScanChildren(element) {
+        return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
+    },
+    invalidScriptParent: [document.body, document.head],
+    isValidScriptTag(element) {
+        return element.tagName === 'SCRIPT' && InlineScript.invalidScriptParent.includes(element.parentElement);
+    },
+    filterScripts(elements) {
+        const scriptElements = [];
+        for (const element of elements)
+            InlineScript.isValidScriptTag(element) && scriptElements.push(element);
+        return scriptElements;
+    },
+    isStatic(element) {
+        var _a;
+        return element.hasAttribute('static') || ((_a = element.parentElement) === null || _a === void 0 ? void 0 : _a.hasAttribute('static'));
+    },
+    tagNamesUsingSrcAttribute: ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'],
+    REACTION_INTERVAL_TIME: 50,
 };
 class InlineScriptInstance {
     constructor() {
@@ -319,7 +475,7 @@ class InlineScriptInstance {
     setupReaction() {
         setInterval(() => {
             this.reaction();
-        }, 50);
+        }, InlineScript.REACTION_INTERVAL_TIME);
     }
     reaction() {
         for (const [varName, reactiveElements] of Object.entries(this.reactiveElements)) {
@@ -332,28 +488,10 @@ class InlineScriptInstance {
                     }
                     if (reactiveElement.parentElement === null)
                         remove();
-                    try {
-                        reactiveElement.render();
-                    }
-                    catch (err) {
-                        console.group('removed element');
-                        console.error(err);
-                        console.log(reactiveElement);
-                        console.groupEnd();
-                        remove();
-                    }
+                    reactiveElement.render();
                 }
             }
         }
-    }
-    addReaction(element) {
-        const varName = element.getAttribute('reacts');
-        if (this.reactiveElements[varName] === undefined)
-            this.reactiveElements[varName] = [];
-        this.reactiveElements[varName].push(element);
-    }
-    hasReaction(element) {
-        return element.hasAttribute('reacts');
     }
     setRenderFunction(element) {
         const that = this;
@@ -362,87 +500,65 @@ class InlineScriptInstance {
             if (element.static)
                 return;
             element.inlineScriptAttributes.forEach(({ name, value }) => {
-                const res = handleResult(eval(value));
+                const res = InlineScript.handleResult(eval(value));
                 element.setAttribute(name, res);
             });
             if (element.fixedHTML)
-                return that.handleInnerHTMLAttribute(element);
-            if (element.functionName !== undefined || element.inlineScriptSrc !== undefined) {
+                return InlineScript.handleInnerHTMLAttribute(element);
+            if (InlineScript.generatesChildElements(element)) {
                 const virtualElement = document.createElement('div');
                 try {
-                    handleInlineScriptEvalResult(virtualElement, eval(element.inlineScript), true);
+                    InlineScript.handleEvalResult(virtualElement, eval(element.inlineScript), true);
                 }
                 catch (err) {
-                    handleExceptionResult(virtualElement, err);
+                    InlineScript.handleExceptionResult(virtualElement, err);
                 }
                 newVars.innerHTML = virtualElement.innerHTML;
-                newVars.args = getAttributesFromElementsAsArray(this);
+                newVars.args = InlineScript.getAttributesFromElementsAsArray(this);
             }
-            if (element.functionName !== undefined) {
-                const innerHTML = newVars.innerHTML;
-                const args = newVars.args;
-                element.innerHTML = functions[element.functionName];
-                eval(InlineScriptInstance + 'new InlineScriptInstance().scanAll(element.children)');
+            if (element.callsFunction()) {
+                const { innerHTML, args } = newVars;
+                element.innerHTML = InlineScript.functions[element.functionName];
+                eval(InlineScript.generateEvalPreCode(element) + 'new InlineScriptInstance().scanAll(element.children)');
                 return;
             }
             if (element.hasInlineScript()) {
                 try {
-                    handleInlineScriptEvalResult(element, eval(element.inlineScript), true);
+                    InlineScript.handleEvalResult(element, eval(element.inlineScript), true);
                 }
                 catch (err) {
-                    handleExceptionResult(element, err);
+                    InlineScript.handleExceptionResult(element, err);
                 }
                 return;
             }
             if (element.inlineScriptSrc !== undefined) {
-                return loadFromUrl(element.inlineScriptSrc).then((content) => __awaiter(this, void 0, void 0, function* () {
-                    const innerHTML = newVars.innerHTML;
-                    const args = newVars.args;
-                    handleInlineScriptEvalResult(element, eval(InlineScriptInstance +
-                        InlineScript.generateEvalPreCode(element) +
+                return InlineScript.loadFromUrl(element.inlineScriptSrc).then((content) => {
+                    const { innerHTML, args } = newVars;
+                    InlineScript.handleEvalResult(element, eval(InlineScript.generateEvalPreCode(element) +
                         'new InlineScriptInstance().fromString(`' +
-                        escapeAll(content) +
+                        InlineScript.escapeAll(content) +
                         '`);'), true);
-                }));
+                });
             }
             if (!calledAutomatically)
                 that.scan(element);
         };
     }
-    compileInlineScript(element) {
-        if (!this.isInlineScript(element))
-            return;
-        element.setUcn();
-        element.setInlineScript(InlineScript.compileHTMLSyntax(element.innerHTML, element));
-    }
-    isInlineScript(element) {
-        return element.innerHTML.trim().startsWith('{');
-    }
-    compileAttributes(element) {
-        const attributes = Array.from(element.attributes);
-        const inlineScriptAttributes = [];
-        attributes.forEach((attribute) => {
-            if (attribute.value.trim().startsWith('{')) {
-                inlineScriptAttributes.push(attribute);
-            }
-        });
-        element.inlineScriptAttributes = inlineScriptAttributes;
-    }
     handleAttributes(element) {
-        this.hasReaction(element) && this.addReaction(element);
-        this.hasValidSrcAttribute(element) && this.handleSrcAttribute(element);
-        this.hasEventAttribute(element) && this.handleEventAttributes(element);
-        if (this.hasInnerHTMLAttribute(element))
+        if (InlineScript.hasReaction(element))
+            this.addReaction(element);
+        if (InlineScript.hasValidSrcAttribute(element))
+            InlineScript.handleSrcAttribute(element);
+        if (InlineScript.hasEventAttribute(element))
+            this.handleEventAttributes(element);
+        if (InlineScript.hasInnerHTMLAttribute(element))
             element.fixedHTML = true;
     }
-    getFirstAttributeName(element) {
-        const attributes = element.attributes;
-        if (attributes.length === 0)
-            return '';
-        return attributes[0].name;
-    }
-    hasEventAttribute(element) {
-        return Array.from(element.attributes).findIndex((attribute) => attribute.name.startsWith('on')) !== -1;
+    addReaction(element) {
+        const varName = element.getAttribute('reacts');
+        if (this.reactiveElements[varName] === undefined)
+            this.reactiveElements[varName] = [];
+        this.reactiveElements[varName].push(element);
     }
     handleEventAttributes(element) {
         const attributes = Array.from(element.attributes).filter((attribute) => attribute.name.startsWith('on'));
@@ -458,104 +574,25 @@ class InlineScriptInstance {
             };
         });
     }
-    hasInnerHTMLAttribute(element) {
-        return element.hasAttribute('innerhtml');
-    }
-    handleInnerHTMLAttribute(element) {
-        if (this.hasInnerHTMLAttribute(element))
-            element.innerHTML = element.getAttribute('innerhtml');
-        else
-            element.innerHTML = '';
-    }
-    hasValidSrcAttribute(element) {
-        return element.hasAttribute('src') && !tagNamesUsingSrcAttribute.includes(element.tagName);
-    }
-    handleSrcAttribute(element) {
-        const src = element.getAttribute('src');
-        element.inlineScriptSrc = src;
-    }
-    ignoreDueToTagName(element) {
-        return ignoredTagNameList.includes(element.tagName);
-    }
-    checkTagName(element) {
-        if (this.ignoreDueToTagName(element))
-            return true;
-        if (this.isMacro(element))
-            return this.compileMacro(element);
-        if (this.isFunction(element))
-            return this.compileFunction(element);
-        if (this.isPreLoad(element))
-            return this.preLoad(element);
-    }
-    isMacro(element) {
-        return element.tagName === 'DEFINE';
-    }
-    compileMacro(element) {
-        return true;
-    }
-    isFunction(element) {
-        return element.tagName === 'FUNCTION';
-    }
-    compileFunction(element) {
-        if (element.attributes.length < 1)
-            return true;
-        const name = element.attributes[0].name;
-        functions[name.toUpperCase()] = element.innerHTML;
-        return true;
-    }
-    callsFunction(element) {
-        if (!Object.keys(functions).includes(element.tagName))
-            return;
-        element.functionName = element.tagName;
-    }
-    isPreLoad(element) {
-        return element.tagName === 'PRELOAD';
-    }
-    preLoad(element) {
-        if (!element.hasAttribute('src'))
-            return true;
-        const src = element.getAttribute('src');
-        loadFromUrl(src);
-        element.style.display = 'none';
-        return true;
-    }
-    shouldScanChildren(element) {
-        return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
-    }
-    isStatic(element) {
-        var _a;
-        return (element.hasAttribute('static') || (__parent === null || __parent === void 0 ? void 0 : __parent.hasAttribute('static')) || ((_a = element.parentElement) === null || _a === void 0 ? void 0 : _a.hasAttribute('static')));
-    }
     scan(element, recursive = true) {
         if (element === undefined)
             return;
-        if (this.checkTagName(element))
+        if (InlineScript.scanTagName(element))
             return;
-        this.callsFunction(element);
-        this.compileAttributes(element);
-        this.compileInlineScript(element);
+        InlineScript.scanAttributes(element);
+        InlineScript.checksInlineScript(element);
         this.setRenderFunction(element);
         this.handleAttributes(element);
-        if (this.isStatic(element))
+        if (InlineScript.isStatic(element))
             element.setAttribute('static', 'true');
-        if (!noRenderingTagNameList.includes(element.tagName))
-            element.render(true);
+        element.render(true);
         if (element.hasAttribute('static'))
             element.static = true;
-        if (recursive && this.shouldScanChildren(element))
+        if (recursive && InlineScript.shouldScanChildren(element))
             this.scanAll(element.children);
     }
-    isValidScriptTag(element) {
-        return (element.tagName === 'SCRIPT' && element.parentElement !== document.body && element.parentElement !== document.head);
-    }
-    filterScripts(elements) {
-        const scriptElements = [];
-        for (const element of elements)
-            this.isValidScriptTag(element) && scriptElements.push(element);
-        return scriptElements;
-    }
     scanAll(elements) {
-        const scriptElements = this.filterScripts(elements);
+        const scriptElements = InlineScript.filterScripts(elements);
         if (scriptElements.length !== 0) {
             const elementsLeft = Array.from(elements).filter((element) => !scriptElements.includes(element));
             eval(scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
@@ -565,7 +602,7 @@ class InlineScriptInstance {
         }
         for (const element of elements) {
             if (element.hasAttribute('dynamic')) {
-                newInlineScript(element);
+                InlineScript.newInlineScript(element);
             }
             else {
                 this.scan(element);
@@ -573,30 +610,8 @@ class InlineScriptInstance {
         }
     }
     fromString(stringElement) {
-        const elements = createElements(stringElement);
+        const elements = InlineScript.createElements(stringElement);
         this.scanAll(elements);
         return elements;
     }
 }
-function inlineScript() {
-    const inlineScript = new InlineScriptInstance();
-    [document.head, document.body].forEach((element) => inlineScript.scan(element));
-    scopedCss.scopeAllStyles();
-}
-function newInlineScript(element) {
-    new InlineScriptInstance().scan(element);
-}
-const state = {
-    render() {
-        Array.from(document.body.children).forEach((_) => {
-            if (_.render !== undefined)
-                _.render();
-        });
-    },
-};
-const res = InlineScript.compileHTMLSyntax(`{{
-  const bar = 10;
-
- // (<h1>bar</h1>)
-}}`, document.head.children[0]);
-console.log(res);
