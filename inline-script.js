@@ -488,7 +488,7 @@ class InlineScriptInstance {
                     }
                     if (reactiveElement.parentElement === null)
                         remove();
-                    reactiveElement.render();
+                    reactiveElement.render(false);
                 }
             }
         }

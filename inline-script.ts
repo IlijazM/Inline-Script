@@ -17,10 +17,6 @@ if (!Object.entries) {
 }
 //#endregion
 //#region Array.from
-interface Array<T> {
-  includes: any;
-}
-
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
 if (!Array.prototype.includes) {
   Object.defineProperty(Array.prototype, 'includes', {
@@ -744,7 +740,7 @@ const InlineScript = {
     if (clear) element.innerHTML = '';
 
     for (const [functionName, functionValue] of Object.entries(this.evalResultHandler)) {
-      if (functionValue(element, result)) return;
+      if ((functionValue as any)(element, result)) return;
     }
 
     element.innerHTML += result.toString();
@@ -753,6 +749,9 @@ const InlineScript = {
   },
   //#endregion
 
+  /**
+   * @returns the result nicely parsed to string.
+   */
   handleResult(result: any): string {
     if (result === undefined) return '';
     if (typeof result === 'string') return result;
@@ -761,6 +760,11 @@ const InlineScript = {
     return JSON.stringify(result);
   },
 
+  /**
+   * Handles errors while executing the eval.
+   * It will print the error in the console as well as display the error
+   * on the element directly.
+   */
   handleExceptionResult(element: HTMLElement, error: any) {
     console.error(error);
 
@@ -1062,7 +1066,7 @@ class InlineScriptInstance {
 
           if (reactiveElement.parentElement === null) remove();
 
-          reactiveElement.render();
+          reactiveElement.render(false);
         }
       }
     }
