@@ -970,19 +970,19 @@ const InlineScript = {
    * Tells if the scan script should scan the children of an element.
    */
   shouldScanChildren(element: HTMLElement): boolean {
-    return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
+    return !element.hasInlineScript() && element.inlineScriptSrc === undefined && !element.callsFunction();
   },
 
   /**
-   * A list of invalid parents for the script element to get executed using inline script.
+   * A list of invalid parent tags for the script element to get executed using inline script.
    */
-  invalidScriptParent: [document.body, document.head],
+  invalidScriptParent: ['HEAD', 'BODY'],
 
   /**
    * @returns if an element is a script element and is not a children an invalid parent.
    */
   isValidScriptTag(element: HTMLElement): boolean {
-    return element.tagName === 'SCRIPT' && InlineScript.invalidScriptParent.includes(element.parentElement);
+    return element.tagName === 'SCRIPT' && !InlineScript.invalidScriptParent.includes(element.parentElement.tagName);
   },
 
   /**
@@ -995,7 +995,7 @@ const InlineScript = {
   filterScripts(elements: HTMLCollection): Array<HTMLElement> {
     const scriptElements = [];
     for (const element of elements)
-      InlineScript.isValidScriptTag(element as HTMLElement) && scriptElements.push(element);
+      if (InlineScript.isValidScriptTag(element as HTMLElement)) scriptElements.push(element);
     return scriptElements;
   },
 
@@ -1074,7 +1074,7 @@ class InlineScriptInstance {
   //#endregion
   //#region Rendering
   /**
-   * Sets up the rendering function
+   * Looks up whats necessary for the rendering process of the element and applies that.
    */
   setRenderFunction(element: HTMLElement) {
     const that = this;
@@ -1095,6 +1095,8 @@ class InlineScriptInstance {
         element.setAttribute(name, res);
       });
 
+      if (InlineScript.isFunction(element)) return;
+
       /**
        * If the element has a fixed 'innerHTML' then apply that and return
        */
@@ -1111,12 +1113,9 @@ class InlineScriptInstance {
          * Sets the innerHTML
          */
         const virtualElement = document.createElement('div');
+        virtualElement.innerHTML = element.innerHTML;
 
-        try {
-          InlineScript.handleEvalResult(virtualElement, eval(element.inlineScript), true);
-        } catch (err) {
-          InlineScript.handleExceptionResult(virtualElement, err);
-        }
+        that.scan(virtualElement);
 
         newVars.innerHTML = virtualElement.innerHTML;
 
@@ -1137,7 +1136,11 @@ class InlineScriptInstance {
 
         element.innerHTML = InlineScript.functions[element.functionName];
 
-        eval(InlineScript.generateEvalPreCode(element) + 'new InlineScriptInstance().scanAll(element.children)');
+        eval(
+          InlineScriptInstance +
+            InlineScript.generateEvalPreCode(element) +
+            'new InlineScriptInstance().scanAll(element.children)'
+        );
 
         return;
       }
@@ -1168,7 +1171,8 @@ class InlineScriptInstance {
           InlineScript.handleEvalResult(
             element,
             eval(
-              InlineScript.generateEvalPreCode(element) +
+              InlineScriptInstance +
+                InlineScript.generateEvalPreCode(element) +
                 'new InlineScriptInstance().fromString(`' +
                 InlineScript.escapeAll(content) +
                 '`);'
@@ -1296,6 +1300,7 @@ class InlineScriptInstance {
       );
       return;
     }
+
     for (const element of elements) {
       if (element.hasAttribute('dynamic')) {
         InlineScript.newInlineScript(element as HTMLElement);

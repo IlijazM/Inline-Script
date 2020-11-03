@@ -447,16 +447,17 @@ const InlineScript = {
             return InlineScript.preLoad(element);
     },
     shouldScanChildren(element) {
-        return !element.hasInlineScript() && element.inlineScriptSrc === undefined;
+        return !element.hasInlineScript() && element.inlineScriptSrc === undefined && !element.callsFunction();
     },
-    invalidScriptParent: [document.body, document.head],
+    invalidScriptParent: ['HEAD', 'BODY'],
     isValidScriptTag(element) {
-        return element.tagName === 'SCRIPT' && InlineScript.invalidScriptParent.includes(element.parentElement);
+        return element.tagName === 'SCRIPT' && !InlineScript.invalidScriptParent.includes(element.parentElement.tagName);
     },
     filterScripts(elements) {
         const scriptElements = [];
         for (const element of elements)
-            InlineScript.isValidScriptTag(element) && scriptElements.push(element);
+            if (InlineScript.isValidScriptTag(element))
+                scriptElements.push(element);
         return scriptElements;
     },
     isStatic(element) {
@@ -503,23 +504,23 @@ class InlineScriptInstance {
                 const res = InlineScript.handleResult(eval(value));
                 element.setAttribute(name, res);
             });
+            if (InlineScript.isFunction(element))
+                return;
             if (element.fixedHTML)
                 return InlineScript.handleInnerHTMLAttribute(element);
             if (InlineScript.generatesChildElements(element)) {
                 const virtualElement = document.createElement('div');
-                try {
-                    InlineScript.handleEvalResult(virtualElement, eval(element.inlineScript), true);
-                }
-                catch (err) {
-                    InlineScript.handleExceptionResult(virtualElement, err);
-                }
+                virtualElement.innerHTML = element.innerHTML;
+                that.scan(virtualElement);
                 newVars.innerHTML = virtualElement.innerHTML;
                 newVars.args = InlineScript.getAttributesFromElementsAsArray(this);
             }
             if (element.callsFunction()) {
                 const { innerHTML, args } = newVars;
                 element.innerHTML = InlineScript.functions[element.functionName];
-                eval(InlineScript.generateEvalPreCode(element) + 'new InlineScriptInstance().scanAll(element.children)');
+                eval(InlineScriptInstance +
+                    InlineScript.generateEvalPreCode(element) +
+                    'new InlineScriptInstance().scanAll(element.children)');
                 return;
             }
             if (element.hasInlineScript()) {
@@ -534,7 +535,8 @@ class InlineScriptInstance {
             if (element.inlineScriptSrc !== undefined) {
                 return InlineScript.loadFromUrl(element.inlineScriptSrc).then((content) => {
                     const { innerHTML, args } = newVars;
-                    InlineScript.handleEvalResult(element, eval(InlineScript.generateEvalPreCode(element) +
+                    InlineScript.handleEvalResult(element, eval(InlineScriptInstance +
+                        InlineScript.generateEvalPreCode(element) +
                         'new InlineScriptInstance().fromString(`' +
                         InlineScript.escapeAll(content) +
                         '`);'), true);

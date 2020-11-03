@@ -8,9 +8,15 @@
     <script src="inline-script.js"></script>
   </head>
 
-  <body>
+  <function foo>
+    <h1>{{ innerHTML }}</h1>
+    <script src>
+      console.log(innerHTML)
+    </script>
+  </function>
 
-    <h1>Hello, world!</h1>
+  <body>
+    <foo>foo bar</foo>
 
     <script>
       inlineScript();
