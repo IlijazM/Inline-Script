@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
 
+    <script>
+      var preRenderInlineScript = true;
+    </script>
     <script src="inline-script.js"></script>
   </head>
 
@@ -16,10 +19,14 @@
   </function>
 
   <body>
+    <div class={'test'}></div>
+
     <foo>foo bar</foo>
 
+    <script src="inline-script-preRenderer.js"></script>
     <script>
       inlineScript();
     </script>
+   
   </body>
 </html>

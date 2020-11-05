@@ -104,34 +104,30 @@ interface HTMLElement {
 }
 //#endregion
 //#region Interface with definition
-//#region UCN
+//#region ISID
 /**
- * The ucn is a unique class name that every inline script element will get.
- * ucn stands for 'Unique Class Name'.
+ * A unique identifier of an element that uses inline script syntax.
  */
 interface HTMLElement {
-  setUcn(): void;
-  removeUcn(): void;
-  ucn: number;
+  setIsid(): void;
+  removeIsid(): void;
+  isid: number;
 }
 
 /**
- * Will set a ucn and an identifier that an ucn exists if there is nothing already.
+ * Will set a isid and if it doesn't exist yet.
  */
-HTMLElement.prototype.setUcn = function () {
-  if (this.classList.contains(InlineScript.CLASS_NAME)) return;
-  this.classList.add(InlineScript.CLASS_NAME);
-
-  this.ucn = InlineScript.inlineScriptUCN++;
-  this.classList.add(InlineScript.UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+HTMLElement.prototype.setIsid = function () {
+  if (this.hasAttribute(InlineScript.ISID_ATTRIBUTE_NAME)) return;
+  this.isid = InlineScript.isid++;
+  this.setAttribute(InlineScript.ISID_ATTRIBUTE_NAME, this.isid);
 };
 
 /**
- * Removes the ucn and the identifier that an ucn exists.
+ * Removes the isid attribute.
  */
-HTMLElement.prototype.removeUcn = function () {
-  this.classList.remove(InlineScript.CLASS_NAME);
-  this.classList.remove(InlineScript.UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+HTMLElement.prototype.removeIsid = function () {
+  this.removeAttribute(InlineScript.ISID_ATTRIBUTE_NAME);
 };
 //#endregion
 //#region Inline script
@@ -166,8 +162,8 @@ HTMLElement.prototype.hasInlineScript = function () {
  * This stores an array of attributes of an element that uses the inline script syntax.
  */
 interface HTMLElement {
-  setInlineScriptAttributes(value: Array<Attr>): void;
-  inlineScriptAttributes: Array<Attr>;
+  setInlineScriptAttributes(value: Array<{ name: string; value: string }>): void;
+  inlineScriptAttributes: Array<{ name: string; value: string }>;
   hasInlineScriptAttributes: () => boolean;
 }
 
@@ -236,10 +232,28 @@ const load = (url: string, forceFetch: boolean = false): void => {
  * Will initiate everything automatically
  */
 function inlineScript() {
+  if (compiledInlineScript) return;
+  compiledInlineScript = true;
   const inlineScript = new InlineScriptInstance();
   [document.head, document.body].forEach((element) => inlineScript.scan(element));
   ScopedCss.scopeAllStyles();
+  ISPR.finish();
 }
+
+/**
+ * This variable will be true if the 'inlineScript' function will get called.
+ * It also prevents the 'inlineScript' function to be called twice.
+ */
+var compiledInlineScript = false;
+
+/**
+ * The inline script pre renderer. This variable will get replaced by another
+ * object that has all of the properties of the inline script renderer.
+ */
+var ISPR: any = {
+  addElement() {},
+  finish() {},
+};
 
 /**
  * Imitating the state variable.
@@ -443,10 +457,21 @@ const InlineScript = {
    *
    * @returns an object of the attributes in 'element'.
    */
-  getAttributesFromElementsAsArray(element: HTMLElement): Record<string, string> {
-    return Object.entries(
-      Array.from(element.attributes).map((attribute: Attr) => [attribute.name, attribute.value])
-    ) as any;
+  getAttributesFromElementsAsObject(element: HTMLElement): Record<string, string> {
+    let output = {};
+    Array.from(element.attributes).forEach(({ name, value }) => {
+      output[name] = value;
+    });
+    return output;
+  },
+
+  /**
+   * Sets the attributes of an element to an object.
+   */
+  setAttributesFromObject(element: HTMLElement, attributes: Record<string, string>) {
+    Object.entries(attributes).forEach(([name, value]) => {
+      element.setAttribute(name, value);
+    });
   },
 
   /**
@@ -507,20 +532,15 @@ const InlineScript = {
   //#endregion
   //#region Class names
   /**
-   * This is the prefix of unique class names (ucn) for inline script.
+   * This is the prefix of the unique attribute name (isid) for inline script.
    */
-  UNIQUE_CLASS_NAME_PREFIX: '--is-ucn-',
+  ISID_ATTRIBUTE_NAME: 'isid',
 
   /**
    * The counter for unique inline script class names.
    * This variable will increase by one every time a new class name gets generated.
    */
-  inlineScriptUCN: 0,
-
-  /**
-   * This is the class name for elements that uses inline script syntax.
-   */
-  CLASS_NAME: '--inline-script',
+  isid: 0,
   //#endregion
   //#region HTML Syntax
   /**
@@ -552,7 +572,7 @@ const InlineScript = {
   generateEvalPreCode(parentElement: HTMLElement): string {
     let evalCode = '';
     evalCode +=
-      'let parent=document.querySelector(".' + InlineScript.UNIQUE_CLASS_NAME_PREFIX + parentElement.ucn + '");';
+      'let parent=document.querySelector(\'[' + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
     evalCode += 'let scope=parent,__parent=parent;';
     evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
     return evalCode;
@@ -786,11 +806,14 @@ const InlineScript = {
 
     attributes.forEach((attribute) => {
       if (attribute.value.trim().startsWith('{')) {
-        inlineScriptAttributes.push(attribute);
+        inlineScriptAttributes.push({ name: attribute.name, value: attribute.value });
       }
     });
 
-    element.inlineScriptAttributes = inlineScriptAttributes;
+    if (inlineScriptAttributes.length === 0) return;
+
+    element.setIsid();
+    element.setInlineScriptAttributes(inlineScriptAttributes);
   },
 
   /**
@@ -813,6 +836,11 @@ const InlineScript = {
   },
   //#endregion
   //#region Src attribute
+  /**
+   * Tag names that occupy the attribute 'src' by html standards.
+   */
+  tagNamesUsingSrcAttribute: ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'],
+
   /**
    * @returns if the element's tag name uses a 'src' tag by html standards.
    */
@@ -876,7 +904,7 @@ const InlineScript = {
    */
   checksInlineScript(element: HTMLElement) {
     if (!InlineScript.hasInlineScript(element)) return;
-    element.setUcn();
+    element.setIsid();
     element.setInlineScript(InlineScript.compileHTMLSyntax(element.innerHTML, element));
   },
   //#endregion
@@ -1007,16 +1035,12 @@ const InlineScript = {
   },
   //#endregion
   //#endregion
-
-  /**
-   * Tag names that occupy the attribute 'src' by html standards.
-   */
-  tagNamesUsingSrcAttribute: ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'],
-
+  //#region Reaction
   /**
    * The refresh time of the reaction interval in milliseconds
    */
   REACTION_INTERVAL_TIME: 50,
+  //#endregion
 };
 //#endregion
 //#region Inline script instance
@@ -1090,9 +1114,11 @@ class InlineScriptInstance {
       /**
        * Render the attributes.
        */
-      element.inlineScriptAttributes.forEach(({ name, value }) => {
-        const res = InlineScript.handleResult(eval(value));
-        element.setAttribute(name, res);
+      element.inlineScriptAttributes?.forEach(({ name, value }) => {
+        try {
+          const res = InlineScript.handleResult(eval(value));
+          element.setAttribute(name, res);
+        } catch (err) {}
       });
 
       if (InlineScript.isFunction(element)) return;
@@ -1122,7 +1148,7 @@ class InlineScriptInstance {
         /**
          * Sets the attributes
          */
-        newVars.args = InlineScript.getAttributesFromElementsAsArray(this);
+        newVars.args = InlineScript.getAttributesFromElementsAsObject(this);
       }
 
       /**
@@ -1276,6 +1302,11 @@ class InlineScriptInstance {
      * element will not scan itself again and overflow the maximum call stack size.
      */
     element.render(true);
+
+    /**
+     * Add the element to the pre renderer script.
+     */
+    ISPR.addElement(element);
 
     /**
      * If the element is static apply the static property so that the element will not get

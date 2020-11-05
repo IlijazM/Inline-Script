@@ -41,16 +41,14 @@ if (!Array.prototype.includes) {
         },
     });
 }
-HTMLElement.prototype.setUcn = function () {
-    if (this.classList.contains(InlineScript.CLASS_NAME))
+HTMLElement.prototype.setIsid = function () {
+    if (this.hasAttribute(InlineScript.ISID_ATTRIBUTE_NAME))
         return;
-    this.classList.add(InlineScript.CLASS_NAME);
-    this.ucn = InlineScript.inlineScriptUCN++;
-    this.classList.add(InlineScript.UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+    this.isid = InlineScript.isid++;
+    this.setAttribute(InlineScript.ISID_ATTRIBUTE_NAME, this.isid);
 };
-HTMLElement.prototype.removeUcn = function () {
-    this.classList.remove(InlineScript.CLASS_NAME);
-    this.classList.remove(InlineScript.UNIQUE_CLASS_NAME_PREFIX + this.ucn);
+HTMLElement.prototype.removeIsid = function () {
+    this.removeAttribute(InlineScript.ISID_ATTRIBUTE_NAME);
 };
 HTMLElement.prototype.setInlineScript = function (value) {
     if (this.inlineScript === undefined)
@@ -77,10 +75,19 @@ const load = (url, forceFetch = false) => {
     this.render(true);
 };
 function inlineScript() {
+    if (compiledInlineScript)
+        return;
+    compiledInlineScript = true;
     const inlineScript = new InlineScriptInstance();
     [document.head, document.body].forEach((element) => inlineScript.scan(element));
     ScopedCss.scopeAllStyles();
+    ISPR.finish();
 }
+var compiledInlineScript = false;
+var ISPR = {
+    addElement() { },
+    finish() { },
+};
 const state = {
     render() {
         Array.from(document.body.children).forEach((element) => {
@@ -165,8 +172,17 @@ const InlineScript = {
         parent.innerHTML = '<div>' + stringElement + '</div>';
         return parent.firstChild.children;
     },
-    getAttributesFromElementsAsArray(element) {
-        return Object.entries(Array.from(element.attributes).map((attribute) => [attribute.name, attribute.value]));
+    getAttributesFromElementsAsObject(element) {
+        let output = {};
+        Array.from(element.attributes).forEach(({ name, value }) => {
+            output[name] = value;
+        });
+        return output;
+    },
+    setAttributesFromObject(element, attributes) {
+        Object.entries(attributes).forEach(([name, value]) => {
+            element.setAttribute(name, value);
+        });
     },
     substringThrow(string, start, length = undefined) {
         const res = string.substr(start, length);
@@ -192,9 +208,8 @@ const InlineScript = {
     removeFromCache(url) {
         InlineScript.srcCache[url] = undefined;
     },
-    UNIQUE_CLASS_NAME_PREFIX: '--is-ucn-',
-    inlineScriptUCN: 0,
-    CLASS_NAME: '--inline-script',
+    ISID_ATTRIBUTE_NAME: 'isid',
+    isid: 0,
     insertLexingResult(string, lexingResult) {
         return (string.substr(0, lexingResult.index) +
             lexingResult.content +
@@ -203,7 +218,7 @@ const InlineScript = {
     generateEvalPreCode(parentElement) {
         let evalCode = '';
         evalCode +=
-            'let parent=document.querySelector(".' + InlineScript.UNIQUE_CLASS_NAME_PREFIX + parentElement.ucn + '");';
+            'let parent=document.querySelector(\'[' + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
         evalCode += 'let scope=parent,__parent=parent;';
         evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
         return evalCode;
@@ -360,10 +375,13 @@ const InlineScript = {
         const inlineScriptAttributes = [];
         attributes.forEach((attribute) => {
             if (attribute.value.trim().startsWith('{')) {
-                inlineScriptAttributes.push(attribute);
+                inlineScriptAttributes.push({ name: attribute.name, value: attribute.value });
             }
         });
-        element.inlineScriptAttributes = inlineScriptAttributes;
+        if (inlineScriptAttributes.length === 0)
+            return;
+        element.setIsid();
+        element.setInlineScriptAttributes(inlineScriptAttributes);
     },
     getFirstAttributeName(element) {
         const attributes = element.attributes;
@@ -374,6 +392,7 @@ const InlineScript = {
     hasReaction(element) {
         return element.hasAttribute('reacts');
     },
+    tagNamesUsingSrcAttribute: ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'],
     tagNameUsesSrcAttribute(element) {
         return InlineScript.tagNamesUsingSrcAttribute.includes(element.tagName);
     },
@@ -402,7 +421,7 @@ const InlineScript = {
     checksInlineScript(element) {
         if (!InlineScript.hasInlineScript(element))
             return;
-        element.setUcn();
+        element.setIsid();
         element.setInlineScript(InlineScript.compileHTMLSyntax(element.innerHTML, element));
     },
     functions: {},
@@ -464,7 +483,6 @@ const InlineScript = {
         var _a;
         return element.hasAttribute('static') || ((_a = element.parentElement) === null || _a === void 0 ? void 0 : _a.hasAttribute('static'));
     },
-    tagNamesUsingSrcAttribute: ['AUDIO', 'EMBED', 'IFRAME', 'IMG', 'INPUT', 'SCRIPT', 'SOURCE', 'TRACK', 'VIDEO'],
     REACTION_INTERVAL_TIME: 50,
 };
 class InlineScriptInstance {
@@ -498,11 +516,15 @@ class InlineScriptInstance {
         const that = this;
         let newVars = {};
         element.render = function (calledAutomatically = false) {
+            var _a;
             if (element.static)
                 return;
-            element.inlineScriptAttributes.forEach(({ name, value }) => {
-                const res = InlineScript.handleResult(eval(value));
-                element.setAttribute(name, res);
+            (_a = element.inlineScriptAttributes) === null || _a === void 0 ? void 0 : _a.forEach(({ name, value }) => {
+                try {
+                    const res = InlineScript.handleResult(eval(value));
+                    element.setAttribute(name, res);
+                }
+                catch (err) { }
             });
             if (InlineScript.isFunction(element))
                 return;
@@ -513,7 +535,7 @@ class InlineScriptInstance {
                 virtualElement.innerHTML = element.innerHTML;
                 that.scan(virtualElement);
                 newVars.innerHTML = virtualElement.innerHTML;
-                newVars.args = InlineScript.getAttributesFromElementsAsArray(this);
+                newVars.args = InlineScript.getAttributesFromElementsAsObject(this);
             }
             if (element.callsFunction()) {
                 const { innerHTML, args } = newVars;
@@ -588,6 +610,7 @@ class InlineScriptInstance {
         if (InlineScript.isStatic(element))
             element.setAttribute('static', 'true');
         element.render(true);
+        ISPR.addElement(element);
         if (element.hasAttribute('static'))
             element.static = true;
         if (recursive && InlineScript.shouldScanChildren(element))
