@@ -315,7 +315,7 @@ const ScopedCss = {
    * @returns the css inputted but scoped.
    */
   scope(scope: string, css: string): string {
-    css = this.removeAllCssComments(css);
+    css = ScopedCss.removeAllCssComments(css);
 
     const regex = /([^\r\n,{}]+)(,(?=[^}]*{)|\s*{)/g;
     let m: RegExpMatchArray;
@@ -364,12 +364,12 @@ const ScopedCss = {
    * @param element the style element.
    */
   scopeStyle(element: HTMLElement) {
-    const uniqueStyleClassName = this.getUniqueStyleClassName();
+    const uniqueStyleClassName = ScopedCss.getUniqueStyleClassName();
 
     // sets a unique class name to the element's parent
     element.parentElement.classList.add(uniqueStyleClassName);
 
-    element.innerHTML = this.scope('.' + uniqueStyleClassName, element.innerHTML);
+    element.innerHTML = ScopedCss.scope('.' + uniqueStyleClassName, element.innerHTML);
     element.removeAttribute('scoped');
   },
 
@@ -377,9 +377,9 @@ const ScopedCss = {
    * This will search for scoped style tags on the element 'parent' and automatically scope them.
    */
   scopeStyles(parent: HTMLElement) {
-    let styles = this.getScopedStyleElements(parent);
+    let styles = ScopedCss.getScopedStyleElements(parent);
 
-    styles.forEach(this.scopeStyle);
+    styles.forEach(ScopedCss.scopeStyle);
 
     styles = Array.from(parent.querySelectorAll('style[scope]'));
   },
@@ -388,7 +388,7 @@ const ScopedCss = {
    * Calls the 'scopedStyles' function with the html element as parameter.
    */
   scopeAllStyles() {
-    this.scopeStyles(document.querySelector('html'));
+    ScopedCss.scopeStyles(document.querySelector('html'));
   },
 };
 //#endregion
@@ -503,6 +503,25 @@ const InlineScript = {
   srcCache: {},
 
   /**
+   * Fetches a url using xml http
+   */
+  async fetch(url: string): Promise<string> {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open('GET', url, true);
+    xmlHttp.send(null);
+
+    return new Promise((resolve, reject) => {
+      xmlHttp.onload = () => {
+        resolve(xmlHttp.responseText);
+      };
+
+      setTimeout(() => {
+        reject();
+      }, 1000);
+    });
+  },
+
+  /**
    * This will fetch an url and caches it in the variable 'srcCache'.
    * If the request already got cached it will return the cache.
    *
@@ -514,7 +533,7 @@ const InlineScript = {
   async loadFromUrl(url: string, forceFetch: boolean = false): Promise<string> {
     let res: string;
 
-    if (InlineScript.srcCache[url] === undefined || forceFetch) res = await (await fetch(url)).text();
+    if (InlineScript.srcCache[url] === undefined || forceFetch) res = await InlineScript.fetch(url);
     else res = InlineScript.srcCache[url];
     InlineScript.srcCache[url] = res;
 
@@ -572,7 +591,7 @@ const InlineScript = {
   generateEvalPreCode(parentElement: HTMLElement): string {
     let evalCode = '';
     evalCode +=
-      'let parent=document.querySelector(\'[' + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
+      "let parent=document.querySelector('[" + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
     evalCode += 'let scope=parent,__parent=parent;';
     evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
     return evalCode;

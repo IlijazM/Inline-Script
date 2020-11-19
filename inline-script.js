@@ -107,7 +107,7 @@ const ScopedCss = {
         return css.replace(ScopedCss.cssCommentsRegex, '');
     },
     scope(scope, css) {
-        css = this.removeAllCssComments(css);
+        css = ScopedCss.removeAllCssComments(css);
         const regex = /([^\r\n,{}]+)(,(?=[^}]*{)|\s*{)/g;
         let m;
         while ((m = regex.exec(css)) !== null) {
@@ -135,18 +135,18 @@ const ScopedCss = {
         return Array.from(parent.querySelectorAll('style[scoped]'));
     },
     scopeStyle(element) {
-        const uniqueStyleClassName = this.getUniqueStyleClassName();
+        const uniqueStyleClassName = ScopedCss.getUniqueStyleClassName();
         element.parentElement.classList.add(uniqueStyleClassName);
-        element.innerHTML = this.scope('.' + uniqueStyleClassName, element.innerHTML);
+        element.innerHTML = ScopedCss.scope('.' + uniqueStyleClassName, element.innerHTML);
         element.removeAttribute('scoped');
     },
     scopeStyles(parent) {
-        let styles = this.getScopedStyleElements(parent);
-        styles.forEach(this.scopeStyle);
+        let styles = ScopedCss.getScopedStyleElements(parent);
+        styles.forEach(ScopedCss.scopeStyle);
         styles = Array.from(parent.querySelectorAll('style[scope]'));
     },
     scopeAllStyles() {
-        this.scopeStyles(document.querySelector('html'));
+        ScopedCss.scopeStyles(document.querySelector('html'));
     },
 };
 const InlineScript = {
@@ -194,11 +194,26 @@ const InlineScript = {
         new InlineScriptInstance().scan(element);
     },
     srcCache: {},
+    fetch(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.open('GET', url, true);
+            xmlHttp.send(null);
+            return new Promise((resolve, reject) => {
+                xmlHttp.onload = () => {
+                    resolve(xmlHttp.responseText);
+                };
+                setTimeout(() => {
+                    reject();
+                }, 1000);
+            });
+        });
+    },
     loadFromUrl(url, forceFetch = false) {
         return __awaiter(this, void 0, void 0, function* () {
             let res;
             if (InlineScript.srcCache[url] === undefined || forceFetch)
-                res = yield (yield fetch(url)).text();
+                res = yield InlineScript.fetch(url);
             else
                 res = InlineScript.srcCache[url];
             InlineScript.srcCache[url] = res;
@@ -218,7 +233,7 @@ const InlineScript = {
     generateEvalPreCode(parentElement) {
         let evalCode = '';
         evalCode +=
-            'let parent=document.querySelector(\'[' + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
+            "let parent=document.querySelector('[" + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
         evalCode += 'let scope=parent,__parent=parent;';
         evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
         return evalCode;
