@@ -102,6 +102,7 @@ var ISPR: any = {
 
     ISPR.script += `}`;
     ISPR.createAndAppendScript();
+    document.body.setAttribute('inline-script-compiler-finished', 'true');
   },
 };
 

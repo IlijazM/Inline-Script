@@ -45,6 +45,7 @@ var ISPR = {
             return;
         ISPR.script += `}`;
         ISPR.createAndAppendScript();
+        document.body.setAttribute('inline-script-compiler-finished', 'true');
     },
 };
 ISPR.preRender();
