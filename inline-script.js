@@ -85,6 +85,7 @@ function inlineScript() {
 }
 var compiledInlineScript = false;
 var ISPR = {
+    tasks: 0,
     addElement() { },
     finish() { },
 };
@@ -216,6 +217,7 @@ const InlineScript = {
                 res = yield InlineScript.fetch(url);
             else
                 res = InlineScript.srcCache[url];
+            ISPR.tasks--;
             InlineScript.srcCache[url] = res;
             return res;
         });
@@ -340,19 +342,22 @@ const InlineScript = {
             if (!(result instanceof Array))
                 return;
             result.forEach((child) => {
-                this.handleInlineScriptEvalResult(element, child);
+                InlineScript.handleEvalResult(element, child);
             });
             return true;
         },
         handleEvalResultPromise(element, result) {
             if (!(result instanceof Promise))
                 return;
+            ISPR.tasks++;
             result
                 .then((res) => {
-                this.handleInlineScriptEvalResult(element, res);
+                ISPR.tasks--;
+                InlineScript.handleEvalResult(element, res);
             })
                 .catch((res) => {
-                this.handleExceptionResult(element, res);
+                ISPR.tasks--;
+                InlineScript.handleExceptionResult(element, res);
             });
             return true;
         },
@@ -463,6 +468,7 @@ const InlineScript = {
         if (!element.hasAttribute('src'))
             return true;
         const src = element.getAttribute('src');
+        ISPR.tasks++;
         InlineScript.loadFromUrl(src);
         return true;
     },
@@ -570,6 +576,7 @@ class InlineScriptInstance {
                 return;
             }
             if (element.inlineScriptSrc !== undefined) {
+                ISPR.tasks++;
                 return InlineScript.loadFromUrl(element.inlineScriptSrc).then((content) => {
                     const { innerHTML, args } = newVars;
                     InlineScript.handleEvalResult(element, eval(InlineScriptInstance +

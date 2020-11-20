@@ -251,6 +251,16 @@ var compiledInlineScript = false;
  * object that has all of the properties of the inline script renderer.
  */
 var ISPR: any = {
+  /**
+   * Keeps track of asynchronous tasks.
+   *
+   * When an asynchronous task starts this number should increase by one in an synchronous process.
+   * When an asynchronous task resolves or rejects this number should decrease by on in an async process.
+   *
+   * This results in a complete pre rendering where no asynchronous tasks got ignored.
+   */
+  tasks: 0,
+
   addElement() {},
   finish() {},
 };
@@ -535,6 +545,9 @@ const InlineScript = {
 
     if (InlineScript.srcCache[url] === undefined || forceFetch) res = await InlineScript.fetch(url);
     else res = InlineScript.srcCache[url];
+
+    ISPR.tasks--;
+
     InlineScript.srcCache[url] = res;
 
     return res;
@@ -750,19 +763,23 @@ const InlineScript = {
     handleEvalResultArray(element: HTMLElement, result: Array<any>): boolean {
       if (!(result instanceof Array)) return;
       result.forEach((child: any) => {
-        this.handleInlineScriptEvalResult(element, child);
+        InlineScript.handleEvalResult(element, child);
       });
       return true;
     },
 
     handleEvalResultPromise(element: HTMLElement, result: Promise<any>): boolean {
       if (!(result instanceof Promise)) return;
+
+      ISPR.tasks++;
       result
         .then((res: any) => {
-          this.handleInlineScriptEvalResult(element, res);
+          ISPR.tasks--;
+          InlineScript.handleEvalResult(element, res);
         })
         .catch((res) => {
-          this.handleExceptionResult(element, res);
+          ISPR.tasks--;
+          InlineScript.handleExceptionResult(element, res);
         });
       return true;
     },
@@ -983,6 +1000,8 @@ const InlineScript = {
     if (!element.hasAttribute('src')) return true;
 
     const src = element.getAttribute('src');
+
+    ISPR.tasks++;
     InlineScript.loadFromUrl(src);
 
     return true;
@@ -1207,6 +1226,7 @@ class InlineScriptInstance {
        * If the element contains a valid 'src' attribute.
        */
       if (element.inlineScriptSrc !== undefined) {
+        ISPR.tasks++;
         return InlineScript.loadFromUrl(element.inlineScriptSrc).then((content: string) => {
           /**
            * These variables may get used inside the eval function.

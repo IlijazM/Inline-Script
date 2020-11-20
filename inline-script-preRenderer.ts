@@ -21,6 +21,16 @@ var ISPR: any = {
   script: '',
 
   /**
+   * Keeps track of asynchronous tasks.
+   *
+   * When an asynchronous task starts this number should increase by one in an synchronous process.
+   * When an asynchronous task resolves or rejects this number should decrease by on in an async process.
+   *
+   * This results in a complete pre rendering where no asynchronous tasks got ignored.
+   */
+  tasks: 0,
+
+  /**
    * Appends a script element to the head.
    */
   appendScriptToHead(scriptElement: HTMLScriptElement) {
@@ -97,12 +107,42 @@ var ISPR: any = {
    * This function should get called after all elements got scanned and all
    * necessary information got handles from inline script.
    */
-  finish() {
+  async finish() {
     if (!ISPR.shouldPreRender()) return;
+
+    await ISPR.asyncTasks();
 
     ISPR.script += `}`;
     ISPR.createAndAppendScript();
     document.body.setAttribute('inline-script-compiler-finished', 'true');
+
+    console.log('FINISHED!');
+  },
+
+  /**
+   * Checks in an interval if all asynchronous tasks got completed and then ends the compiler
+   */
+  async asyncTasks() {
+    return new Promise((resolve, reject) => {
+      let intervalID = setInterval(() => {
+        if (ISPR.tasks <= 0) {
+          clearInterval(intervalID);
+          intervalID = null;
+          resolve();
+        }
+      }, 20);
+
+      /**
+       * resolve after 4 seconds
+       */
+      setTimeout(() => {
+        if (intervalID !== null) {
+          console.warn('The compiler finished forcefully. There may be asynchronous tasks left.');
+          clearInterval(intervalID);
+          resolve();
+        }
+      }, 4000);
+    });
   },
 };
 

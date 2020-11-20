@@ -11,19 +11,16 @@
     <script src="inline-script.js"></script>
   </head>
 
-  <function foo>
-    <h1>{{ innerHTML }}</h1>
-    <script src>
-      console.log(innerHTML)
-    </script>
-  </function>
-
   <body>
-    <div class={'test'}></div>
-
-    <foo>foo bar</foo>
-
     <div src="test.html"></div>
+
+    <h1>{{
+      new Promise(resolve => {
+        setTimeout(() => {
+          resolve('Hello, world!')
+        }, 2000)
+      })
+    }}</h1>
 
     <script src="inline-script-preRenderer.js"></script>
     <script>
