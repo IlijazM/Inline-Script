@@ -463,6 +463,17 @@ const InlineScript = {
   },
 
   /**
+   * Sets src attributes to all script tags in an HTMLCollection.
+   */
+  sanitizeScriptElements(collection: HTMLCollection) {
+    for (const element of collection) {
+      if (element.tagName === 'SCRIPT') {
+        element.setAttribute('src', '');
+      }
+    }
+  },
+
+  /**
    * Converts a NamedNodeMap to an object.
    *
    * @returns an object of the attributes in 'element'.
@@ -1386,6 +1397,7 @@ class InlineScriptInstance {
    */
   fromString(stringElement: string) {
     const elements = InlineScript.createElements(stringElement);
+    InlineScript.sanitizeScriptElements(elements);
     this.scanAll(elements);
     return elements;
   }

@@ -43,6 +43,7 @@ var ISPR: any = {
   createScriptElement(script: string): HTMLScriptElement {
     const scriptElement = document.createElement('script') as HTMLScriptElement;
     scriptElement.innerHTML = script;
+    scriptElement.defer = true;
     return scriptElement;
   },
 
@@ -96,9 +97,23 @@ var ISPR: any = {
   addElement(element: HTMLElement) {
     if (element.isid === undefined) return;
 
-    ISPR.script += `var el = document.querySelector('.${InlineScript.ISID_ATTRIBUTE_NAME}${element.isid}');\n`;
+    ISPR.script += `var el = document.querySelector('*[${InlineScript.ISID_ATTRIBUTE_NAME}="${element.isid}"]');\n`;
     if (element.hasInlineScript()) ISPR.addInlineScript(element);
     if (element.hasInlineScriptAttributes()) ISPR.addInlineScriptAttributes(element);
+  },
+
+  /**
+   * Adds the src cache to the script.
+   */
+  addSrcCache() {
+    Object.entries(InlineScript.srcCache).forEach(([src, cache]) => {
+      ISPR.script +=
+        "InlineScript.srcCache['" +
+        InlineScript.escapeAll(src) +
+        "'] = `" +
+        InlineScript.escapeAll(cache as string) +
+        '`;\n';
+    });
   },
 
   /**
@@ -112,11 +127,11 @@ var ISPR: any = {
 
     await ISPR.asyncTasks();
 
+    ISPR.addSrcCache();
+
     ISPR.script += `}`;
     ISPR.createAndAppendScript();
     document.body.setAttribute('inline-script-compiler-finished', 'true');
-
-    console.log('FINISHED!');
   },
 
   /**

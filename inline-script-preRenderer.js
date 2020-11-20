@@ -18,6 +18,7 @@ var ISPR = {
     createScriptElement(script) {
         const scriptElement = document.createElement('script');
         scriptElement.innerHTML = script;
+        scriptElement.defer = true;
         return scriptElement;
     },
     createAndAppendScript() {
@@ -44,21 +45,31 @@ var ISPR = {
     addElement(element) {
         if (element.isid === undefined)
             return;
-        ISPR.script += `var el = document.querySelector('.${InlineScript.ISID_ATTRIBUTE_NAME}${element.isid}');\n`;
+        ISPR.script += `var el = document.querySelector('*[${InlineScript.ISID_ATTRIBUTE_NAME}="${element.isid}"]');\n`;
         if (element.hasInlineScript())
             ISPR.addInlineScript(element);
         if (element.hasInlineScriptAttributes())
             ISPR.addInlineScriptAttributes(element);
+    },
+    addSrcCache() {
+        Object.entries(InlineScript.srcCache).forEach(([src, cache]) => {
+            ISPR.script +=
+                "InlineScript.srcCache['" +
+                    InlineScript.escapeAll(src) +
+                    "'] = `" +
+                    InlineScript.escapeAll(cache) +
+                    '`;\n';
+        });
     },
     finish() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!ISPR.shouldPreRender())
                 return;
             yield ISPR.asyncTasks();
+            ISPR.addSrcCache();
             ISPR.script += `}`;
             ISPR.createAndAppendScript();
             document.body.setAttribute('inline-script-compiler-finished', 'true');
-            console.log('FINISHED!');
         });
     },
     asyncTasks() {

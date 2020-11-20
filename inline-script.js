@@ -173,6 +173,13 @@ const InlineScript = {
         parent.innerHTML = '<div>' + stringElement + '</div>';
         return parent.firstChild.children;
     },
+    sanitizeScriptElements(collection) {
+        for (const element of collection) {
+            if (element.tagName === 'SCRIPT') {
+                element.setAttribute('src', '');
+            }
+        }
+    },
     getAttributesFromElementsAsObject(element) {
         let output = {};
         Array.from(element.attributes).forEach(({ name, value }) => {
@@ -658,6 +665,7 @@ class InlineScriptInstance {
     }
     fromString(stringElement) {
         const elements = InlineScript.createElements(stringElement);
+        InlineScript.sanitizeScriptElements(elements);
         this.scanAll(elements);
         return elements;
     }

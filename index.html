@@ -14,16 +14,8 @@
   <body>
     <div src="test.html"></div>
 
-    <h1>{{
-      new Promise(resolve => {
-        setTimeout(() => {
-          resolve('Hello, world!')
-        }, 2000)
-      })
-    }}</h1>
-
     <script src="inline-script-preRenderer.js"></script>
-    <script>
+    <script defer>
       inlineScript();
     </script>
    
