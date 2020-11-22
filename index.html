@@ -14,10 +14,13 @@
   <body>
     <div src="test.html"></div>
 
+    <div>{{
+      const foo = 'foo';
+      const bar = 'bar';
+
+      foo + bar;
+    }}</div>
+
     <script src="inline-script-preRenderer.js"></script>
-    <script defer>
-      inlineScript();
-    </script>
-   
   </body>
 </html>

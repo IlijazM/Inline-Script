@@ -1404,3 +1404,8 @@ class InlineScriptInstance {
   //#endregion
 }
 //#endregion
+//#region Call inline script
+window.addEventListener('load', () => {
+  if (inlineScriptGotPreRendered !== true) inlineScript();
+});
+//#endregion

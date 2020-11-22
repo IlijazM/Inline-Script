@@ -670,3 +670,7 @@ class InlineScriptInstance {
         return elements;
     }
 }
+window.addEventListener('load', () => {
+    if (inlineScriptGotPreRendered !== true)
+        inlineScript();
+});

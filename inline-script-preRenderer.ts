@@ -31,6 +31,12 @@ var ISPR: any = {
   tasks: 0,
 
   /**
+   * This variable is necessary because if you would bake a closing script tag in ISPR script the html
+   * rendering engine would get confused and closes the script tag earlier than intended.
+   */
+  closingScriptTag: '</script>',
+
+  /**
    * Appends a script element to the head.
    */
   appendScriptToHead(scriptElement: HTMLScriptElement) {
@@ -43,7 +49,6 @@ var ISPR: any = {
   createScriptElement(script: string): HTMLScriptElement {
     const scriptElement = document.createElement('script') as HTMLScriptElement;
     scriptElement.innerHTML = script;
-    scriptElement.defer = true;
     return scriptElement;
   },
 
@@ -69,8 +74,9 @@ var ISPR: any = {
   preRender() {
     if (!ISPR.shouldPreRender()) return;
 
-    ISPR.script += `var inlineScriptGotPreRendered = true;\n\n`;
+    ISPR.script += `var inlineScriptGotPreRendered = true;\n`;
     ISPR.script += `if (compiledInlineScript === false) {\n\n`;
+    ISPR.script += `window.addEventListener('load', () => {\n`;
   },
 
   /**
@@ -117,6 +123,16 @@ var ISPR: any = {
   },
 
   /**
+   * Removes all </script> and replaces them with the 'ISPR.closingScriptTag' variable.
+   *
+   * This is necessary because if you would bake a closing script tag in ISPR script the html
+   * rendering engine would get confused and closes the script tag earlier than intended.
+   */
+  handleClosingScriptTags() {
+    ISPR.script = ISPR.script.replace(/\<\/script\>/gm, '`+ISPR.closingScriptTag+`');
+  },
+
+  /**
    * Finishes the script and adds it to the head.
    *
    * This function should get called after all elements got scanned and all
@@ -129,7 +145,9 @@ var ISPR: any = {
 
     ISPR.addSrcCache();
 
-    ISPR.script += `}`;
+    ISPR.handleClosingScriptTags();
+
+    ISPR.script += `inlineScript();})}`;
     ISPR.createAndAppendScript();
     document.body.setAttribute('inline-script-compiler-finished', 'true');
   },

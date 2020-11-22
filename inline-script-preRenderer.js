@@ -12,13 +12,13 @@ var inlineScriptGotPreRendered;
 var ISPR = {
     script: '',
     tasks: 0,
+    closingScriptTag: '</script>',
     appendScriptToHead(scriptElement) {
         document.head.appendChild(scriptElement);
     },
     createScriptElement(script) {
         const scriptElement = document.createElement('script');
         scriptElement.innerHTML = script;
-        scriptElement.defer = true;
         return scriptElement;
     },
     createAndAppendScript() {
@@ -31,8 +31,9 @@ var ISPR = {
     preRender() {
         if (!ISPR.shouldPreRender())
             return;
-        ISPR.script += `var inlineScriptGotPreRendered = true;\n\n`;
+        ISPR.script += `var inlineScriptGotPreRendered = true;\n`;
         ISPR.script += `if (compiledInlineScript === false) {\n\n`;
+        ISPR.script += `window.addEventListener('load', () => {\n`;
     },
     addInlineScript(element) {
         ISPR.script += 'el.inlineScript = `' + InlineScript.escapeAll(element.inlineScript) + '`;\n';
@@ -61,13 +62,17 @@ var ISPR = {
                     '`;\n';
         });
     },
+    handleClosingScriptTags() {
+        ISPR.script = ISPR.script.replace(/\<\/script\>/gm, '`+ISPR.closingScriptTag+`');
+    },
     finish() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!ISPR.shouldPreRender())
                 return;
             yield ISPR.asyncTasks();
             ISPR.addSrcCache();
-            ISPR.script += `}`;
+            ISPR.handleClosingScriptTags();
+            ISPR.script += `inlineScript();})}`;
             ISPR.createAndAppendScript();
             document.body.setAttribute('inline-script-compiler-finished', 'true');
         });
