@@ -622,7 +622,7 @@ class InlineScriptInstance {
                 value = element.inlineScript;
                 element.fixedHTML = true;
             }
-            element.setAttribute(attribute.name, '');
+            element.setAttribute(attribute.name, '/**/');
             element[attribute.name] = function (event) {
                 eval(value);
             };
