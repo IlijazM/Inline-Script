@@ -617,7 +617,7 @@ const InlineScript = {
     evalCode +=
       "let parent=document.querySelector('[" + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
     evalCode += 'let scope=parent,__parent=parent;';
-    evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
+    evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render&&_.render())}};';
     return evalCode;
   },
 
@@ -635,7 +635,7 @@ const InlineScript = {
     return (
       'eval(InlineScriptInstance+`' +
       InlineScript.generateEvalPreCode(element) +
-      'new InlineScriptInstance().fromString(\\`' +
+      'new InlineScriptInstance().fromString(element,\\`' +
       content.substring(1, content.length - 1) +
       '\\`)`)'
     );
@@ -909,6 +909,7 @@ const InlineScript = {
   handleSrcAttribute(element: HTMLElement) {
     const src = element.getAttribute('src');
     element.inlineScriptSrc = src;
+    element.setIsid();
   },
   //#endregion
   //#region Event attribute
@@ -1249,7 +1250,7 @@ class InlineScriptInstance {
             eval(
               InlineScriptInstance +
                 InlineScript.generateEvalPreCode(element) +
-                'new InlineScriptInstance().fromString(`' +
+                'new InlineScriptInstance().fromString(element,`' +
                 InlineScript.escapeAll(content) +
                 '`);'
             ),
@@ -1312,7 +1313,7 @@ class InlineScriptInstance {
     attributes.forEach((attribute) => {
       let value = attribute.value;
       if (!value) {
-        value = element.innerHTML;
+        value = element.inlineScript;
         element.fixedHTML = true;
       }
 
@@ -1395,9 +1396,19 @@ class InlineScriptInstance {
    *
    * @param stringElement the elements as string.
    */
-  fromString(stringElement: string) {
+  fromString(parent: HTMLElement, stringElement: string) {
     const elements = InlineScript.createElements(stringElement);
     InlineScript.sanitizeScriptElements(elements);
+
+    /**
+     * Sets the elements to static if the parent element is static.
+     */
+    if (parent.hasAttribute('static')) {
+      for (const element of elements) {
+        element.setAttribute('static', 'true');
+      }
+    }
+
     this.scanAll(elements);
     return elements;
   }

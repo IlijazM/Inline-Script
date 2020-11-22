@@ -1,2 +1,14 @@
-<h3>{ foo }</h3>
-<script>const foo = 'bar';</script>
+<div>
+    <div>{{
+        counter
+    }}</div>
+
+    <button onclick innerHTML="CLICK ME">{{
+        counter++;
+        state.render();
+    }}</button>
+</div>
+
+<script>
+    let counter = Math.floor(Math.random() * 100);
+</script>

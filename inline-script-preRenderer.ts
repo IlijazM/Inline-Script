@@ -102,6 +102,7 @@ var ISPR: any = {
    */
   addElement(element: HTMLElement) {
     if (element.isid === undefined) return;
+    if (element.hasAttribute('static')) return;
 
     ISPR.script += `var el = document.querySelector('*[${InlineScript.ISID_ATTRIBUTE_NAME}="${element.isid}"]');\n`;
     if (element.hasInlineScript()) ISPR.addInlineScript(element);

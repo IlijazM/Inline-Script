@@ -244,7 +244,7 @@ const InlineScript = {
         evalCode +=
             "let parent=document.querySelector('[" + InlineScript.ISID_ATTRIBUTE_NAME + '="' + parentElement.isid + '"]\');';
         evalCode += 'let scope=parent,__parent=parent;';
-        evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render())}};';
+        evalCode += 'let state={render(){Array.from(parent.children).forEach(_=>_.render&&_.render())}};';
         return evalCode;
     },
     removeEmptySpace(string) {
@@ -253,7 +253,7 @@ const InlineScript = {
     convertHTMLSyntaxResultContent(content, element) {
         return ('eval(InlineScriptInstance+`' +
             InlineScript.generateEvalPreCode(element) +
-            'new InlineScriptInstance().fromString(\\`' +
+            'new InlineScriptInstance().fromString(element,\\`' +
             content.substring(1, content.length - 1) +
             '\\`)`)');
     },
@@ -429,6 +429,7 @@ const InlineScript = {
     handleSrcAttribute(element) {
         const src = element.getAttribute('src');
         element.inlineScriptSrc = src;
+        element.setIsid();
     },
     hasEventAttribute(element) {
         return Array.from(element.attributes).findIndex((attribute) => attribute.name.startsWith('on')) !== -1;
@@ -588,7 +589,7 @@ class InlineScriptInstance {
                     const { innerHTML, args } = newVars;
                     InlineScript.handleEvalResult(element, eval(InlineScriptInstance +
                         InlineScript.generateEvalPreCode(element) +
-                        'new InlineScriptInstance().fromString(`' +
+                        'new InlineScriptInstance().fromString(element,`' +
                         InlineScript.escapeAll(content) +
                         '`);'), true);
                 });
@@ -618,7 +619,7 @@ class InlineScriptInstance {
         attributes.forEach((attribute) => {
             let value = attribute.value;
             if (!value) {
-                value = element.innerHTML;
+                value = element.inlineScript;
                 element.fixedHTML = true;
             }
             element.setAttribute(attribute.name, '');
@@ -663,9 +664,14 @@ class InlineScriptInstance {
             }
         }
     }
-    fromString(stringElement) {
+    fromString(parent, stringElement) {
         const elements = InlineScript.createElements(stringElement);
         InlineScript.sanitizeScriptElements(elements);
+        if (parent.hasAttribute('static')) {
+            for (const element of elements) {
+                element.setAttribute('static', 'true');
+            }
+        }
         this.scanAll(elements);
         return elements;
     }
