@@ -12,9 +12,25 @@
   </head>
 
   <body>
-    <div static src="test.html"></div>
+    <div>
+      <div>
+        <h1>{ foo }</h1>
+        <button onclick="increase()">CLICK ME</button>
+      </div>
+      <style scoped>
+        h1 {
+          color: red;
+        }
+      </style>
+      <script src>
+        let foo = 69;
 
-    <button onclick="console.log('run')">HELLO</button>
+        function increase() {
+          foo++;
+          state.render()
+        }
+      </script>
+    </div>
 
     <script src="inline-script-preRenderer.js"></script>
   </body>

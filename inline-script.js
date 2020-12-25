@@ -631,6 +631,8 @@ class InlineScriptInstance {
                 value = element.inlineScript;
                 element.fixedHTML = true;
             }
+            if (value === '/**/')
+                return;
             element.setAttribute(attribute.name, '/**/');
             element[attribute.name] = function (event) {
                 eval(value);
@@ -656,10 +658,14 @@ class InlineScriptInstance {
             this.scanAll(element.children);
     }
     scanAll(elements) {
+        var _a;
         const scriptElements = InlineScript.filterScripts(elements);
+        const parentElement = (_a = elements[0]) === null || _a === void 0 ? void 0 : _a.parentElement;
+        parentElement === null || parentElement === void 0 ? void 0 : parentElement.setIsid();
         if (scriptElements.length !== 0) {
             const elementsLeft = Array.from(elements).filter((element) => !scriptElements.includes(element));
-            eval(scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
+            eval(InlineScript.generateEvalPreCode(parentElement) +
+                scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
                 InlineScriptInstance +
                 'new InlineScriptInstance().scanAll(elementsLeft)');
             return;
