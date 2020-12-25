@@ -25,9 +25,9 @@
       <script src>
         let foo = 69;
 
-        function increase() {
+        const increase = () => {
           foo++;
-          state.render()
+          this.querySelector('h1').render();
         }
       </script>
     </div>

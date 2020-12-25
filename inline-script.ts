@@ -1403,12 +1403,13 @@ class InlineScriptInstance {
 
     if (scriptElements.length !== 0) {
       const elementsLeft = Array.from(elements).filter((element: HTMLElement) => !scriptElements.includes(element));
-      eval(
-        InlineScript.generateEvalPreCode(parentElement) +
+      (function () {
+        eval(
           scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
-          InlineScriptInstance +
-          'new InlineScriptInstance().scanAll(elementsLeft)'
-      );
+            InlineScriptInstance +
+            'new InlineScriptInstance().scanAll(elementsLeft)'
+        );
+      }.call(parentElement));
       return;
     }
 

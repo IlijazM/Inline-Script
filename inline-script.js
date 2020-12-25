@@ -664,10 +664,11 @@ class InlineScriptInstance {
         parentElement === null || parentElement === void 0 ? void 0 : parentElement.setIsid();
         if (scriptElements.length !== 0) {
             const elementsLeft = Array.from(elements).filter((element) => !scriptElements.includes(element));
-            eval(InlineScript.generateEvalPreCode(parentElement) +
-                scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
-                InlineScriptInstance +
-                'new InlineScriptInstance().scanAll(elementsLeft)');
+            (function () {
+                eval(scriptElements.map((scriptElement) => scriptElement.innerHTML + ';\n').join('') +
+                    InlineScriptInstance +
+                    'new InlineScriptInstance().scanAll(elementsLeft)');
+            }.call(parentElement));
             return;
         }
         for (const element of elements) {
