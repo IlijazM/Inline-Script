@@ -414,6 +414,28 @@ const ScopedCss = {
 const InlineScript = {
   //#region Common functions
   /**
+   * Queries using xpath.
+   *
+   * @param xpath the xpath query
+   * @param parent the parent node. It defaults to document.
+   *
+   * @returns an array of nodes of the query
+   */
+  $x(xpath: string, parent: any): Array<Node> {
+    let results: Array<Node> = [];
+
+    parent = parent || document;
+
+    let query = document.evaluate(xpath, parent, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+
+    for (let i = 0, length = query.snapshotLength; i < length; ++i) {
+      results.push(query.snapshotItem(i));
+    }
+
+    return results;
+  },
+
+  /**
    * This is a list of regex that define which parts of html (as string) should be reverse sanitized.
    * Every regex gets the attributes 'global' and 'multiline'.
    */
@@ -1420,3 +1442,4 @@ window.addEventListener('load', () => {
   if (inlineScriptGotPreRendered !== true) inlineScript();
 });
 //#endregion
+// InlineScript.$x(`//*[starts-with(normalize-space(child::text()), "{")]`)

@@ -151,6 +151,15 @@ const ScopedCss = {
     },
 };
 const InlineScript = {
+    $x(xpath, parent) {
+        let results = [];
+        parent = parent || document;
+        let query = document.evaluate(xpath, parent, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0, length = query.snapshotLength; i < length; ++i) {
+            results.push(query.snapshotItem(i));
+        }
+        return results;
+    },
     reverseSanitationReplaceList: {
         '\\&gt;': '>',
         '\\&lt;': '<',
