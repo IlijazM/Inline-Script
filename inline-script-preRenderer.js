@@ -64,6 +64,9 @@ var ISPR = {
                     '`;\n';
         });
     },
+    addIsid() {
+        ISPR.script += `InlineScript.isid = ${InlineScript.isid};\n`;
+    },
     handleClosingScriptTags() {
         ISPR.script = ISPR.script.replace(/\<\/script\>/gm, '`+ISPR.closingScriptTag+`');
     },
@@ -73,6 +76,7 @@ var ISPR = {
                 return;
             yield ISPR.asyncTasks();
             ISPR.addSrcCache();
+            ISPR.addIsid();
             ISPR.handleClosingScriptTags();
             ISPR.script += `inlineScript();})}`;
             ISPR.createAndAppendScript();

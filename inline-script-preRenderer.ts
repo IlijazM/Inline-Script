@@ -124,6 +124,13 @@ var ISPR: any = {
   },
 
   /**
+   * Stores the current isid value.
+   */
+  addIsid() {
+    ISPR.script += `InlineScript.isid = ${InlineScript.isid};\n`;
+  },
+
+  /**
    * Removes all </script> and replaces them with the 'ISPR.closingScriptTag' variable.
    *
    * This is necessary because if you would bake a closing script tag in ISPR script the html
@@ -145,7 +152,7 @@ var ISPR: any = {
     await ISPR.asyncTasks();
 
     ISPR.addSrcCache();
-
+    ISPR.addIsid();
     ISPR.handleClosingScriptTags();
 
     ISPR.script += `inlineScript();})}`;

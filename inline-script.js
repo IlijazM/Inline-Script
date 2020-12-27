@@ -42,8 +42,10 @@ if (!Array.prototype.includes) {
     });
 }
 HTMLElement.prototype.setIsid = function () {
-    if (this.hasAttribute(InlineScript.ISID_ATTRIBUTE_NAME))
+    if (this.hasAttribute(InlineScript.ISID_ATTRIBUTE_NAME)) {
+        this.isid = this.getAttribute(InlineScript.ISID_ATTRIBUTE_NAME);
         return;
+    }
     this.isid = InlineScript.isid++;
     this.setAttribute(InlineScript.ISID_ATTRIBUTE_NAME, this.isid);
 };
@@ -552,6 +554,7 @@ class InlineScriptInstance {
     }
     setRenderFunction(element) {
         const that = this;
+        element.setIsid();
         let newVars = {};
         element.render = function (calledAutomatically = false) {
             var _a;

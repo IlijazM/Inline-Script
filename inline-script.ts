@@ -118,7 +118,10 @@ interface HTMLElement {
  * Will set a isid and if it doesn't exist yet.
  */
 HTMLElement.prototype.setIsid = function () {
-  if (this.hasAttribute(InlineScript.ISID_ATTRIBUTE_NAME)) return;
+  if (this.hasAttribute(InlineScript.ISID_ATTRIBUTE_NAME)) {
+    this.isid = this.getAttribute(InlineScript.ISID_ATTRIBUTE_NAME);
+    return;
+  }
   this.isid = InlineScript.isid++;
   this.setAttribute(InlineScript.ISID_ATTRIBUTE_NAME, this.isid);
 };
@@ -1174,6 +1177,7 @@ class InlineScriptInstance {
    */
   setRenderFunction(element: HTMLElement) {
     const that = this;
+    element.setIsid();
 
     let newVars: Record<string, any> = {};
 
