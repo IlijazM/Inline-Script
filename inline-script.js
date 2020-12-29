@@ -228,6 +228,12 @@ const InlineScript = {
             });
         });
     },
+    fetchSync(url) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open('GET', url, false);
+        xmlHttp.send(null);
+        return xmlHttp.responseText;
+    },
     loadFromUrl(url, forceFetch = false) {
         return __awaiter(this, void 0, void 0, function* () {
             let res;
@@ -239,6 +245,16 @@ const InlineScript = {
             InlineScript.srcCache[url] = res;
             return res;
         });
+    },
+    loadFromUrlSync(url, forceFetch = false) {
+        let res;
+        if (InlineScript.srcCache[url] === undefined || forceFetch)
+            res = InlineScript.fetchSync(url);
+        else
+            res = InlineScript.srcCache[url];
+        ISPR.tasks--;
+        InlineScript.srcCache[url] = res;
+        return res;
     },
     removeFromCache(url) {
         InlineScript.srcCache[url] = undefined;
@@ -487,6 +503,11 @@ const InlineScript = {
         if (!element.hasAttribute('src'))
             return true;
         const src = element.getAttribute('src');
+        const sync = element.hasAttribute('sync');
+        if (sync) {
+            InlineScript.loadFromUrlSync(src);
+            return true;
+        }
         ISPR.tasks++;
         InlineScript.loadFromUrl(src);
         return true;

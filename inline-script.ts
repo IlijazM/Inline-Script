@@ -550,6 +550,8 @@ const InlineScript = {
 
   /**
    * Fetches a url using xml http
+   * @param url the url that should get fetched.
+   * @return the content of the url.
    */
   async fetch(url: string): Promise<string> {
     var xmlHttp = new XMLHttpRequest();
@@ -568,6 +570,18 @@ const InlineScript = {
   },
 
   /**
+   * Fetches a url using xml http synced.
+   * @param url the url that should get fetched.
+   * @return the content of the url.
+   */
+  fetchSync(url: string): string {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open('GET', url, false);
+    xmlHttp.send(null);
+    return xmlHttp.responseText;
+  },
+
+  /**
    * This will fetch an url and caches it in the variable 'srcCache'.
    * If the request already got cached it will return the cache.
    *
@@ -580,6 +594,28 @@ const InlineScript = {
     let res: string;
 
     if (InlineScript.srcCache[url] === undefined || forceFetch) res = await InlineScript.fetch(url);
+    else res = InlineScript.srcCache[url];
+
+    ISPR.tasks--;
+
+    InlineScript.srcCache[url] = res;
+
+    return res;
+  },
+
+  /**
+   * This will fetch an url synced and caches it in the variable 'srcCache'.
+   * If the request already got cached it will return the cache.
+   *
+   * @param url the url / path.
+   * @param forceFetch if set true, it won't return the cache but rather fetch the file again.
+   *
+   * @returns the content of the request as string.
+   */
+  loadFromUrlSync(url: string, forceFetch: boolean = false): string {
+    let res: string;
+
+    if (InlineScript.srcCache[url] === undefined || forceFetch) res = InlineScript.fetchSync(url);
     else res = InlineScript.srcCache[url];
 
     ISPR.tasks--;
@@ -1037,6 +1073,12 @@ const InlineScript = {
     if (!element.hasAttribute('src')) return true;
 
     const src = element.getAttribute('src');
+
+    const sync = element.hasAttribute('sync');
+    if (sync) {
+      InlineScript.loadFromUrlSync(src);
+      return true;
+    }
 
     ISPR.tasks++;
     InlineScript.loadFromUrl(src);
